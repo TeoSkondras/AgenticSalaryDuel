@@ -63,7 +63,29 @@ export async function GET(req: NextRequest) {
     dbStatus = 'ok'
   } catch (err) {
     dbError = formatError(err)
-    console.error('[health] DB error:', dbError)
+
+    // Translate common Atlas/TLS errors into actionable hints
+    const msg = String((err as Error).message ?? '')
+    const cause = String((err as { cause?: { message?: string } }).cause?.message ?? '')
+    const combined = msg + cause
+
+    if (combined.includes('tlsv1 alert internal error') || combined.includes('SSL alert number 80')) {
+      dbError.hint =
+        'TLS handshake rejected by Atlas — your server IP is not in the MongoDB Atlas IP Access List. ' +
+        'Go to Atlas → Security → Network Access → Add IP Address → Allow Access from Anywhere (0.0.0.0/0).'
+    } else if (combined.includes('Authentication failed') || combined.includes('AuthenticationFailed')) {
+      dbError.hint = 'MongoDB authentication failed — check MONGODB_URI username and password.'
+    } else if (combined.includes('ENOTFOUND') || combined.includes('getaddrinfo')) {
+      dbError.hint = 'DNS resolution failed — check the hostname in MONGODB_URI.'
+    } else if (combined.includes('ECONNREFUSED')) {
+      dbError.hint = 'Connection refused — check that the Atlas cluster is running and the port is correct.'
+    } else if (combined.includes('serverSelectionTimeoutMS') || combined.includes('Server selection timed out')) {
+      dbError.hint =
+        'Server selection timed out — Atlas may be unreachable from this network. ' +
+        'Check IP Access List and that the cluster is not paused.'
+    }
+
+    console.error('[health] DB error:', JSON.stringify(dbError))
   }
 
   const totalMs = Date.now() - start
