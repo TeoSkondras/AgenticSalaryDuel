@@ -4,8 +4,9 @@ import type { Agent, Challenge, Session, Move, Score, JobPosting } from '@/types
 const dbName = process.env.MONGODB_DB || 'agenticsalaryduel'
 
 // Connection caching for Next.js HMR
-let client: MongoClient
-let db: Db
+let client: MongoClient | undefined
+let db: Db | undefined
+let connecting: Promise<{ client: MongoClient; db: Db }> | undefined
 
 declare global {
   // eslint-disable-next-line no-var
@@ -21,22 +22,42 @@ async function connect(): Promise<{ client: MongoClient; db: Db }> {
   }
 
   if (process.env.NODE_ENV === 'development') {
-    if (!global._mongoClient) {
-      global._mongoClient = new MongoClient(uri)
-      await global._mongoClient.connect()
-      global._mongoDb = global._mongoClient.db(dbName)
-      await ensureIndexes(global._mongoDb)
+    if (!global._mongoClient || !global._mongoDb) {
+      const devClient = new MongoClient(uri)
+      await devClient.connect()
+      const devDb = devClient.db(dbName)
+      await ensureIndexes(devDb)
+      global._mongoClient = devClient
+      global._mongoDb = devDb
     }
     return { client: global._mongoClient!, db: global._mongoDb! }
   }
 
-  if (!client) {
-    client = new MongoClient(uri)
-    await client.connect()
-    db = client.db(dbName)
-    await ensureIndexes(db)
+  if (client && db) {
+    return { client, db }
   }
-  return { client, db }
+
+  if (!connecting) {
+    connecting = (async () => {
+      const nextClient = new MongoClient(uri)
+      await nextClient.connect()
+      const nextDb = nextClient.db(dbName)
+      await ensureIndexes(nextDb)
+      client = nextClient
+      db = nextDb
+      return { client, db }
+    })()
+      .catch((err) => {
+        client = undefined
+        db = undefined
+        throw err
+      })
+      .finally(() => {
+        connecting = undefined
+      })
+  }
+
+  return connecting
 }
 
 async function ensureIndexes(database: Db): Promise<void> {
