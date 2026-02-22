@@ -29,7 +29,8 @@ async function getChallengesForPage(): Promise<ChallengeInfo[]> {
       jobInfo: c.jobInfo ?? { company: '', title: '', location: '', level: '' },
       constraints: c.constraints ?? { employerTargets: { salary: 0 }, candidateTargets: { salary: 0 } },
     }))
-  } catch {
+  } catch (err) {
+    console.error('[HomePage] getChallengesForPage error:', err)
     return []
   }
 }

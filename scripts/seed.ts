@@ -5,7 +5,10 @@
  */
 
 import { config } from 'dotenv'
-config({ path: '.env.local' })
+// Only load .env.local when running locally (no MONGODB_URI from Railway/host)
+if (!process.env.MONGODB_URI) {
+  config({ path: '.env.local' })
+}
 import { MongoClient, ObjectId } from 'mongodb'
 import { buildConstraints, buildPrompt, inferLevel } from '../lib/selectChallenges'
 import type { JobPosting, Challenge } from '../types'
