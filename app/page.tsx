@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { getChallenges as getChallengesCollection } from '@/lib/db'
 
 interface ChallengeInfo {
   id: string
@@ -16,17 +17,18 @@ interface ChallengeInfo {
   }
 }
 
-async function getChallenges(): Promise<ChallengeInfo[]> {
-  const baseUrl = process.env.APP_URL || 'http://localhost:3000'
-  const today = new Date().toISOString().slice(0, 10)
-
+async function getChallengesForPage(): Promise<ChallengeInfo[]> {
   try {
-    const res = await fetch(`${baseUrl}/api/public/challenges?dayKey=${today}`, {
-      cache: 'no-store',
-    })
-    if (!res.ok) return []
-    const data = await res.json()
-    return data.challenges || []
+    const today = new Date().toISOString().slice(0, 10)
+    const challenges = await getChallengesCollection()
+    const docs = await challenges.find({ dayKey: today }).sort({ index: 1 }).toArray()
+    return docs.map((c) => ({
+      id: c._id?.toString() ?? '',
+      index: c.index,
+      status: c.status,
+      jobInfo: c.jobInfo ?? { company: '', title: '', location: '', level: '' },
+      constraints: c.constraints ?? { employerTargets: { salary: 0 }, candidateTargets: { salary: 0 } },
+    }))
   } catch {
     return []
   }
@@ -46,7 +48,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default async function HomePage() {
-  const challenges = await getChallenges()
+  const challenges = await getChallengesForPage()
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
