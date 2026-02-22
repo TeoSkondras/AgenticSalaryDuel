@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { getChallenges as getChallengesCollection } from '@/lib/db'
 
+export const dynamic = 'force-dynamic'
+
 interface ChallengeInfo {
   id: string
   index: number

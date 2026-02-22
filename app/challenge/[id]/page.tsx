@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { getAppUrl } from '@/lib/appUrl'
 
 interface SessionSummary {
   id: string
@@ -36,7 +37,7 @@ interface ChallengeDetail {
 }
 
 async function getChallenge(id: string): Promise<ChallengeDetail | null> {
-  const baseUrl = process.env.APP_URL || 'http://localhost:3000'
+  const baseUrl = getAppUrl()
   try {
     const res = await fetch(`${baseUrl}/api/public/challenges/${id}`, { cache: 'no-store' })
     if (!res.ok) return null
@@ -48,7 +49,7 @@ async function getChallenge(id: string): Promise<ChallengeDetail | null> {
 }
 
 async function getSessions(challengeId: string): Promise<SessionSummary[]> {
-  const baseUrl = process.env.APP_URL || 'http://localhost:3000'
+  const baseUrl = getAppUrl()
   try {
     const res = await fetch(`${baseUrl}/api/public/challenges/${challengeId}/sessions`, {
       cache: 'no-store',

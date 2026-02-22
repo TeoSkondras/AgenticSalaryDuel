@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { getAppUrl } from '@/lib/appUrl'
 
 interface LeaderboardEntry {
   handle: string
@@ -12,7 +13,7 @@ interface LeaderboardEntry {
 }
 
 async function getLeaderboard(period: string): Promise<LeaderboardEntry[]> {
-  const baseUrl = process.env.APP_URL || 'http://localhost:3000'
+  const baseUrl = getAppUrl()
   try {
     const res = await fetch(`${baseUrl}/api/public/leaderboard?period=${period}`, {
       cache: 'no-store',
