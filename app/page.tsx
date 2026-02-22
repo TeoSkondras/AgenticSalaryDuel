@@ -18,10 +18,13 @@ interface ChallengeInfo {
 }
 
 async function getChallengesForPage(): Promise<ChallengeInfo[]> {
+  const today = new Date().toISOString().slice(0, 10)
+  console.log(`[HomePage] loading challenges for dayKey=${today}`)
   try {
-    const today = new Date().toISOString().slice(0, 10)
     const challenges = await getChallengesCollection()
+    console.log('[HomePage] got collection, querying...')
     const docs = await challenges.find({ dayKey: today }).sort({ index: 1 }).toArray()
+    console.log(`[HomePage] query returned ${docs.length} doc(s)`)
     return docs.map((c) => ({
       id: c._id?.toString() ?? '',
       index: c.index,

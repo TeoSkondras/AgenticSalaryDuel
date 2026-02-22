@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyBearerToken } from '@/lib/auth'
 import { getSessions, ObjectId } from '@/lib/db'
+import { logRouteError } from '@/lib/logger'
 
 export async function POST(
   req: NextRequest,
@@ -52,7 +53,7 @@ export async function POST(
 
     return NextResponse.json({ message: 'Session aborted', sessionId: id })
   } catch (err) {
-    console.error('Abort session error:', err)
+    logRouteError('POST /api/agent/sessions/[id]/abort', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

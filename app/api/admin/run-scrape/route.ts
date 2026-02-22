@@ -3,6 +3,7 @@ import { verifyAdminToken } from '@/lib/auth'
 import { scrapeAll } from '@/lib/scrape'
 import { selectChallenges } from '@/lib/selectChallenges'
 import { getChallenges, getJobPostings } from '@/lib/db'
+import { logRouteError } from '@/lib/logger'
 
 export async function POST(req: NextRequest) {
   if (!verifyAdminToken(req)) {
@@ -90,7 +91,7 @@ export async function POST(req: NextRequest) {
       challengeIds: inserted,
     })
   } catch (err) {
-    console.error('Run scrape error:', err)
+    logRouteError('POST /api/admin/run-scrape', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }

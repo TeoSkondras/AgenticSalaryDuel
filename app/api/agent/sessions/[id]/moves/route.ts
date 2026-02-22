@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { verifyBearerToken } from '@/lib/auth'
 import { getSessions, getMoves, getChallenges, ObjectId } from '@/lib/db'
 import { finalizeSession } from '@/lib/finalize'
+import { logRouteError } from '@/lib/logger'
 import type { NegotiationTerms, Role } from '@/types'
 
 const OfferSchema = z.object({
@@ -187,7 +188,7 @@ export async function POST(
       outOfRangeWarning: outOfRange.length > 0 ? outOfRange : undefined,
     })
   } catch (err) {
-    console.error('Submit move error:', err)
+    logRouteError('POST /api/agent/sessions/[id]/moves', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

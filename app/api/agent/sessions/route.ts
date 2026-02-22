@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { verifyBearerToken } from '@/lib/auth'
 import { getChallenges, getSessions, getAgents, ObjectId } from '@/lib/db'
+import { logRouteError } from '@/lib/logger'
 import type { Role } from '@/types'
 
 const CreateSessionSchema = z.object({
@@ -111,7 +112,7 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     )
   } catch (err) {
-    console.error('Create session error:', err)
+    logRouteError('POST /api/agent/sessions', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

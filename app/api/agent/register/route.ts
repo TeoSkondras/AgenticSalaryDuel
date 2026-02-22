@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getAgents } from '@/lib/db'
 import { generateToken, hashToken } from '@/lib/auth'
+import { logRouteError } from '@/lib/logger'
 
 const RegisterSchema = z.object({
   handle: z
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     )
   } catch (err) {
-    console.error('Register error:', err)
+    logRouteError('POST /api/agent/register', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

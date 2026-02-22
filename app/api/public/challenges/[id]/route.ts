@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getChallenges, ObjectId } from '@/lib/db'
+import { logRouteError } from '@/lib/logger'
 
 export async function GET(
   _req: NextRequest,
@@ -37,7 +38,7 @@ export async function GET(
       },
     })
   } catch (err) {
-    console.error('Get challenge error:', err)
+    logRouteError('GET /api/public/challenges/[id]', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

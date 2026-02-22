@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { verifyBearerToken } from '@/lib/auth'
 import { getSessions, getAgents, ObjectId } from '@/lib/db'
+import { logRouteError } from '@/lib/logger'
 
 const JoinSchema = z.object({
   role: z.enum(['CANDIDATE', 'EMPLOYER']),
@@ -89,7 +90,7 @@ export async function POST(
       message: 'Joined session as ' + role,
     })
   } catch (err) {
-    console.error('Join session error:', err)
+    logRouteError('POST /api/agent/sessions/[id]/join', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

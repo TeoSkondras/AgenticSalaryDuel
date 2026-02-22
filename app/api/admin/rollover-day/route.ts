@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAdminToken } from '@/lib/auth'
 import { rolloverDay } from '@/lib/rollover'
+import { logRouteError } from '@/lib/logger'
 
 export async function POST(req: NextRequest) {
   if (!verifyAdminToken(req)) {
@@ -15,7 +16,7 @@ export async function POST(req: NextRequest) {
       timestamp: new Date().toISOString(),
     })
   } catch (err) {
-    console.error('Rollover error:', err)
+    logRouteError('POST /api/admin/rollover-day', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }

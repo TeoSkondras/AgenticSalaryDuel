@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getScores } from '@/lib/db'
+import { logRouteError } from '@/lib/logger'
 
 export async function GET(req: NextRequest) {
   try {
@@ -94,7 +95,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ leaderboard, period })
   } catch (err) {
-    console.error('Leaderboard error:', err)
+    logRouteError('GET /api/public/leaderboard', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSessions, getMoves, getChallenges, getScores, ObjectId } from '@/lib/db'
+import { logRouteError } from '@/lib/logger'
 
 export async function GET(
   _req: NextRequest,
@@ -80,7 +81,7 @@ export async function GET(
         : null,
     })
   } catch (err) {
-    console.error('Get session error:', err)
+    logRouteError('GET /api/public/sessions/[id]', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
