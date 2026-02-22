@@ -117,8 +117,11 @@ async function ensureIndexes(database: Db): Promise<void> {
 }
 
 export async function getDb(): Promise<Db> {
-  const { db } = await connect()
-  return db
+  const result = await connect()
+  if (!result?.db) {
+    throw new Error('MongoDB connection did not return a database instance')
+  }
+  return result.db
 }
 
 export async function getAgents(): Promise<Collection<Agent>> {
