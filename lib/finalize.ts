@@ -132,6 +132,8 @@ export async function finalizeSession(
           scoreSummary,
           ...(agreement ? { agreement } : {}),
         },
+        // Clear any stale turn timer — prevents timeout from firing during slow finalization
+        $unset: { turnStartedAt: '', timeoutClaimedAt: '' },
       }
     )
     console.log(`[finalize] session set to ${finalStatus} sessionId=${sessionId}`)

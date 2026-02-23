@@ -314,12 +314,13 @@ function computeCandidateOffer(
   c: AgentConstraints,
 ): Terms {
   const { myTargets: t, range: r } = c
+  // Start aggressive (95% of target), concede down toward 57% of range over 70% of game
   const prog = Math.min(1, round / (maxRounds * 0.7))
   return {
-    salary: lerp(Math.round(t.salary * 0.90), Math.round((r.salary?.min ?? t.salary * 0.7) + ((r.salary?.max ?? t.salary) - (r.salary?.min ?? t.salary * 0.7)) * 0.55), prog),
-    bonus:  lerp(Math.round(t.bonus * 0.90),  Math.round((r.bonus?.min  ?? 0) + ((r.bonus?.max  ?? 0) - (r.bonus?.min  ?? 0)) * 0.55), prog),
-    equity: lerp(Math.round(t.equity * 0.90), Math.round((r.equity?.min ?? 0) + ((r.equity?.max ?? 0) - (r.equity?.min ?? 0)) * 0.55), prog),
-    pto:    lerp(t.pto, Math.round((r.pto?.min ?? t.pto) + ((r.pto?.max ?? t.pto) - (r.pto?.min ?? t.pto)) * 0.55), prog),
+    salary: lerp(Math.round(t.salary * 0.95), Math.round((r.salary?.min ?? t.salary * 0.7) + ((r.salary?.max ?? t.salary) - (r.salary?.min ?? t.salary * 0.7)) * 0.57), prog),
+    bonus:  lerp(Math.round(t.bonus * 0.95),  Math.round((r.bonus?.min  ?? 0) + ((r.bonus?.max  ?? 0) - (r.bonus?.min  ?? 0)) * 0.57), prog),
+    equity: lerp(Math.round(t.equity * 0.95), Math.round((r.equity?.min ?? 0) + ((r.equity?.max ?? 0) - (r.equity?.min ?? 0)) * 0.57), prog),
+    pto:    lerp(t.pto, Math.round((r.pto?.min ?? t.pto) + ((r.pto?.max ?? t.pto) - (r.pto?.min ?? t.pto)) * 0.57), prog),
   }
 }
 
@@ -353,26 +354,27 @@ function candidateMakeMove(
   const rangeMax = constraints.range.salary?.max ?? constraints.myTargets.salary
   const salarySpan = rangeMax - rangeMin
 
-  // Accept?
-  if (lastEmployerOffer) {
-    const roundsLeft = maxRounds - round
-    const offerPos = (lastEmployerOffer.salary - rangeMin) / (salarySpan || 1)
-    const threshold = 0.35 + (1 - roundsLeft / maxRounds) * 0.25
-    if (offerPos >= threshold || roundsLeft <= 2) {
-      return { type: 'ACCEPT', offer: lastEmployerOffer, rationale: p.accept(lastEmployerOffer.salary, roundsLeft, job.company) }
-    }
-  }
-
-  // Bluff?
+  // 1. BLUFF fires first — always at round 2 if configured (before any accept check)
   if (round === 2 && !state.bluffed && scenario.candidateBluffs && p.bluff) {
     return { type: 'BLUFF', offer, rationale: p.bluff(job.title, job.company, offer.salary) }
   }
 
-  // Message to split?
+  // 2. MESSAGE fires at midpoint — also before accept
   const messageRound = Math.floor(maxRounds * 0.5)
   if (round === messageRound && !state.messageSent && lastEmployerOffer) {
     const split = Math.round((offer.salary + lastEmployerOffer.salary) / 2)
     return { type: 'MESSAGE', offer: { ...offer, salary: split }, rationale: p.message(round, split, offer.salary, lastEmployerOffer.salary) }
+  }
+
+  // 3. ACCEPT — only possible from round 3 onwards; threshold shrinks as game progresses
+  if (lastEmployerOffer && round >= 3) {
+    const roundsLeft = maxRounds - round
+    const offerPos = (lastEmployerOffer.salary - rangeMin) / (salarySpan || 1)
+    // Threshold falls from 0.68 (round 3) to 0.42 (round 8+); last 2 rounds accept anything
+    const threshold = roundsLeft <= 2 ? 0 : Math.max(0.42, 0.68 - ((round - 3) / (maxRounds - 3)) * 0.26)
+    if (offerPos >= threshold) {
+      return { type: 'ACCEPT', offer: lastEmployerOffer, rationale: p.accept(lastEmployerOffer.salary, roundsLeft, job.company) }
+    }
   }
 
   const type = round === 0 ? 'OFFER' : 'COUNTER'
@@ -397,26 +399,27 @@ function employerMakeMove(
   const rangeMax = constraints.range.salary?.max ?? constraints.myTargets.salary * 1.4
   const salarySpan = rangeMax - rangeMin
 
-  // Accept?
-  if (lastCandidateOffer) {
-    const roundsLeft = maxRounds - round
-    const askPos = (lastCandidateOffer.salary - rangeMin) / (salarySpan || 1)
-    const threshold = 0.65 - (1 - roundsLeft / maxRounds) * 0.25
-    if (askPos <= threshold || roundsLeft <= 2) {
-      return { type: 'ACCEPT', offer: lastCandidateOffer, rationale: p.accept(lastCandidateOffer.salary, roundsLeft, job.company) }
-    }
-  }
-
-  // Call bluff?
+  // 1. CALL_BLUFF fires first — at round 3 if candidate bluffed (before accept check)
   if (state.candidateBluffed && !state.bluffCalled && round >= 3 && scenario.employerCallsBluff && p.callBluff) {
     return { type: 'CALL_BLUFF', offer, rationale: p.callBluff(job.level, offer.salary) }
   }
 
-  // Message to split?
+  // 2. MESSAGE fires at midpoint — also before accept
   const messageRound = Math.floor(maxRounds * 0.5)
   if (round === messageRound && !state.messageSent && lastCandidateOffer) {
     const split = Math.round((offer.salary + lastCandidateOffer.salary) / 2)
     return { type: 'MESSAGE', offer: { ...offer, salary: split }, rationale: p.message(round, split, offer.salary, lastCandidateOffer.salary) }
+  }
+
+  // 3. ACCEPT — only possible from round 3 onwards; threshold grows as game progresses
+  if (lastCandidateOffer && round >= 3) {
+    const roundsLeft = maxRounds - round
+    const askPos = (lastCandidateOffer.salary - rangeMin) / (salarySpan || 1)
+    // Threshold rises from 0.32 (round 3) to 0.58 (round 8+); last 2 rounds accept anything
+    const threshold = roundsLeft <= 2 ? 1 : Math.min(0.58, 0.32 + ((round - 3) / (maxRounds - 3)) * 0.26)
+    if (askPos <= threshold) {
+      return { type: 'ACCEPT', offer: lastCandidateOffer, rationale: p.accept(lastCandidateOffer.salary, roundsLeft, job.company) }
+    }
   }
 
   const type = round === 0 ? 'OFFER' : 'COUNTER'

@@ -143,8 +143,11 @@ export async function POST(
       timestamp: now,
     })
 
-    // Flip next turn and reset the turn timer
+    // Flip next turn and reset the turn timer.
+    // For ACCEPT (and max-round situations) the session is about to be finalized —
+    // unset turnStartedAt so a slow finalizeSession call can't trigger a spurious timeout.
     const nextTurn: Role = callerRole === 'CANDIDATE' ? 'EMPLOYER' : 'CANDIDATE'
+    const willFinalize = type === 'ACCEPT' || newRound >= session.maxRounds
 
     await sessions.updateOne(
       { _id: sessionObjId },
@@ -153,8 +156,9 @@ export async function POST(
         $set: {
           nextTurn,
           currentRound: newRound,
-          turnStartedAt: now, // restart the 30s clock for the next player
+          ...(willFinalize ? {} : { turnStartedAt: now }),
         },
+        ...(willFinalize ? { $unset: { turnStartedAt: '' } } : {}),
         $push: { moves: moveResult.insertedId },
       } as any
     )
