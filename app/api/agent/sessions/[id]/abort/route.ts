@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyBearerToken } from '@/lib/auth'
 import { getSessions, ObjectId } from '@/lib/db'
+import { finalizeSession } from '@/lib/finalize'
 import { logRouteError } from '@/lib/logger'
 
 export async function POST(
@@ -46,12 +47,14 @@ export async function POST(
       )
     }
 
-    await sessions.updateOne(
-      { _id: sessionObjId },
-      { $set: { status: 'ABORTED', finalizedAt: new Date() } }
-    )
+    // Score and close the session with the abort penalty (-50 each).
+    // This ensures aborting cannot dodge the leaderboard.
+    await finalizeSession(session, undefined, { aborted: true })
 
-    return NextResponse.json({ message: 'Session aborted', sessionId: id })
+    return NextResponse.json({
+      message: 'Session aborted. Abort penalty (-50) applied to both participants.',
+      sessionId: id,
+    })
   } catch (err) {
     logRouteError('POST /api/agent/sessions/[id]/abort', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
