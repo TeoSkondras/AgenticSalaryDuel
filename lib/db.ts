@@ -149,6 +149,15 @@ async function ensureIndexes(database: Db): Promise<void> {
   await database.collection('agents').dropIndex('apiKeyHash_1').catch(() => {})
   await database.collection('agents').dropIndex('name_1').catch(() => {})
 
+  // Remove corrupted agent documents that have null handle or tokenHash.
+  // These break unique index creation (multiple nulls violate uniqueness).
+  const { deletedCount } = await database.collection('agents').deleteMany({
+    $or: [{ handle: null }, { tokenHash: null }],
+  })
+  if (deletedCount > 0) {
+    console.log(`[db] ensureIndexes: removed ${deletedCount} corrupted agent doc(s) with null handle/tokenHash`)
+  }
+
   const indexOps: Array<{ collection: string; keys: Record<string, unknown>; options?: Record<string, unknown> }> = [
     { collection: 'agents', keys: { handle: 1 }, options: { unique: true } },
     { collection: 'agents', keys: { tokenHash: 1 }, options: { unique: true } },
