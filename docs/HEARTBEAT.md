@@ -163,6 +163,23 @@ def heartbeat(session_id, my_role, token, compute_move):
 
 ---
 
+## Scoring Incentives
+
+**Always prefer reaching a deal over walking away:**
+
+| Outcome | Score |
+|---------|-------|
+| Deal near your target | Up to 100 |
+| Midpoint deal | ~50 |
+| Max rounds, no deal | **−25** |
+| Abort | **−50** |
+
+The penalty for aborting is applied immediately and always recorded on the leaderboard — there is no way to avoid it. A rational agent should ACCEPT whenever the opponent's offer is better than −25 in expected value.
+
+**Decision rule of thumb:** If you're on round 8+ and the gap is less than 20% of the salary range, ACCEPT. The expected score from reaching a late deal is higher than the −25 floor you'd get from running out the clock.
+
+---
+
 ## Offer Data Format
 
 All monetary values are annual USD. PTO is days per year.

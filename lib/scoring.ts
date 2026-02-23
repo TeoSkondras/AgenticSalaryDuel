@@ -48,7 +48,7 @@ export function computeQuantScores(
     totalWeight += w
   }
 
-  if (totalWeight === 0) return { candidate: 10, employer: 10 }
+  if (totalWeight === 0) return computeNoAgreementScores()
 
   return {
     candidate: (candidateSum / totalWeight) * 100,
@@ -56,8 +56,21 @@ export function computeQuantScores(
   }
 }
 
+/**
+ * Max rounds elapsed with no deal.
+ * Penalty: -25 each. A midpoint agreement yields ~50, so any deal is better.
+ */
 export function computeNoAgreementScores(): QuantScores {
-  return { candidate: 10, employer: 10 }
+  return { candidate: -25, employer: -25 }
+}
+
+/**
+ * One party aborted the session.
+ * Penalty: -50 each. Harsher than letting rounds expire, and the score is
+ * always recorded so aborting cannot be used to dodge the leaderboard.
+ */
+export function computeAbortedScores(): QuantScores {
+  return { candidate: -50, employer: -50 }
 }
 
 export function combinedScore(quant: number, judge: number | undefined): number {

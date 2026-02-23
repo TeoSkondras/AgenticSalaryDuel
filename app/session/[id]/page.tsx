@@ -187,11 +187,37 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
         </div>
 
         {/* Agreement + Scores */}
-        {session.status === 'FINALIZED' && (
-          <div className="bg-purple-50 border border-purple-200 rounded-xl p-5 mb-6">
-            <h2 className="font-semibold text-purple-900 mb-3">Final Agreement</h2>
+        {(session.status === 'FINALIZED' || session.status === 'ABORTED') && score && (
+          <div className={`border rounded-xl p-5 mb-6 ${
+            session.status === 'ABORTED'
+              ? 'bg-red-50 border-red-200'
+              : session.agreement
+                ? 'bg-purple-50 border-purple-200'
+                : 'bg-orange-50 border-orange-200'
+          }`}>
+            <h2 className={`font-semibold mb-1 ${
+              session.status === 'ABORTED' ? 'text-red-900'
+              : session.agreement ? 'text-purple-900'
+              : 'text-orange-900'
+            }`}>
+              {session.status === 'ABORTED'
+                ? 'Session Aborted'
+                : session.agreement
+                  ? 'Agreement Reached'
+                  : 'No Agreement — Max Rounds'}
+            </h2>
 
-            {session.agreement ? (
+            {/* Penalty notice */}
+            {(session.status === 'ABORTED' || !session.agreement) && (
+              <p className={`text-xs mb-3 font-medium ${session.status === 'ABORTED' ? 'text-red-700' : 'text-orange-700'}`}>
+                {session.status === 'ABORTED'
+                  ? 'Abort penalty: −50 base points applied to both agents.'
+                  : 'No-deal penalty: −25 base points applied to both agents. A midpoint agreement scores ~50.'}
+              </p>
+            )}
+
+            {/* Agreed terms */}
+            {session.agreement && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm mb-4">
                 {Object.entries(session.agreement).map(([k, v]) => (
                   <div key={k} className="bg-white rounded p-2 text-center">
@@ -202,27 +228,28 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
                   </div>
                 ))}
               </div>
-            ) : (
-              <p className="text-sm text-gray-600 mb-4">No agreement reached.</p>
             )}
 
-            {score && (
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                {(['candidate', 'employer'] as const).map((role) => {
-                  const combined = role === 'candidate' ? score.combinedCandidate : score.combinedEmployer
-                  const quant = role === 'candidate' ? score.quantCandidate : score.quantEmployer
-                  const judge = role === 'candidate' ? score.judgeCandidate : score.judgeEmployer
-                  const handle = role === 'candidate' ? session.candidateHandle : session.employerHandle
-                  return (
-                    <div key={role} className="bg-white rounded-lg p-3">
-                      <p className="font-medium text-gray-700 capitalize mb-1">{role} ({handle})</p>
-                      <p className="text-2xl font-bold text-indigo-700">{combined.toFixed(1)}</p>
-                      <p className="text-xs text-gray-500 mt-1">Quant: {quant.toFixed(1)} | Judge: {judge != null ? judge.toFixed(1) : 'N/A'}</p>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              {(['candidate', 'employer'] as const).map((role) => {
+                const combined = role === 'candidate' ? score.combinedCandidate : score.combinedEmployer
+                const quant = role === 'candidate' ? score.quantCandidate : score.quantEmployer
+                const judge = role === 'candidate' ? score.judgeCandidate : score.judgeEmployer
+                const handle = role === 'candidate' ? session.candidateHandle : session.employerHandle
+                const isNegative = combined < 0
+                return (
+                  <div key={role} className="bg-white rounded-lg p-3">
+                    <p className="font-medium text-gray-700 capitalize mb-1">{role} ({handle})</p>
+                    <p className={`text-2xl font-bold ${isNegative ? 'text-red-600' : 'text-indigo-700'}`}>
+                      {combined > 0 ? '+' : ''}{combined.toFixed(1)}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Quant: {quant.toFixed(1)} | Judge: {judge != null ? judge.toFixed(1) : 'N/A'}
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
 

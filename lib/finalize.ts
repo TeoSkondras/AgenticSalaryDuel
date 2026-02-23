@@ -1,11 +1,17 @@
 import { getSessions, getMoves, getChallenges, getScores, getAgents, ObjectId, formatError } from '@/lib/db'
-import { computeQuantScores, computeNoAgreementScores, combinedScore } from '@/lib/scoring'
+import { computeQuantScores, computeNoAgreementScores, computeAbortedScores, combinedScore } from '@/lib/scoring'
 import { judgeSession } from '@/lib/judge'
-import type { Session, NegotiationTerms, ScoreSummary } from '@/types'
+import type { Session, NegotiationTerms, ScoreSummary, SessionStatus } from '@/types'
+
+interface FinalizeOpts {
+  /** True when a participant explicitly aborted — applies the abort penalty (-50). */
+  aborted?: boolean
+}
 
 export async function finalizeSession(
   session: Session,
-  agreement?: NegotiationTerms
+  agreement?: NegotiationTerms,
+  opts: FinalizeOpts = {}
 ): Promise<void> {
   if (!session._id) {
     console.warn('[finalize] called with session missing _id, skipping')
@@ -13,7 +19,8 @@ export async function finalizeSession(
   }
 
   const sessionId = session._id.toString()
-  console.log(`[finalize] starting sessionId=${sessionId} agreement=${agreement ? 'yes' : 'none'}`)
+  const reason = opts.aborted ? 'aborted' : agreement ? 'agreement' : 'no_agreement'
+  console.log(`[finalize] starting sessionId=${sessionId} reason=${reason}`)
 
   const [sessions, moves, challenges, scores, agents] = await Promise.all([
     getSessions(),
@@ -32,14 +39,16 @@ export async function finalizeSession(
   const sessionMoves = await moves.find({ sessionId: session._id }).toArray()
   console.log(`[finalize] found ${sessionMoves.length} moves for sessionId=${sessionId}`)
 
-  // Compute quant scores
-  const quant = agreement
-    ? computeQuantScores(agreement, challenge.constraints)
-    : computeNoAgreementScores()
+  // Compute quantitative scores
+  const quant = opts.aborted
+    ? computeAbortedScores()
+    : agreement
+      ? computeQuantScores(agreement, challenge.constraints)
+      : computeNoAgreementScores()
 
-  console.log(`[finalize] quant scores: candidate=${quant.candidate.toFixed(2)} employer=${quant.employer.toFixed(2)}`)
+  console.log(`[finalize] quant: candidate=${quant.candidate.toFixed(1)} employer=${quant.employer.toFixed(1)} (reason=${reason})`)
 
-  // Get agent handles
+  // Agent handles
   const candidateAgent = session.candidateAgentId
     ? await agents.findOne({ _id: session.candidateAgentId })
     : null
@@ -50,17 +59,19 @@ export async function finalizeSession(
   const candidateHandle = candidateAgent?.handle || session.candidateHandle || 'unknown'
   const employerHandle = employerAgent?.handle || session.employerHandle || 'unknown'
 
-  // LLM judge (optional — skipped if no API key)
+  // LLM judge — run even for no-agreement/abort if there's a transcript to evaluate
   let judgeResult = null
-  try {
-    judgeResult = await judgeSession(challenge, sessionMoves, candidateHandle, employerHandle)
-    if (judgeResult) {
-      console.log(`[finalize] judge scores: candidate=${judgeResult.candidate.score} employer=${judgeResult.employer.score}`)
-    } else {
-      console.log('[finalize] judge returned null (no API key or empty response)')
+  if (sessionMoves.length >= 2) {
+    try {
+      judgeResult = await judgeSession(challenge, sessionMoves, candidateHandle, employerHandle)
+      if (judgeResult) {
+        console.log(`[finalize] judge: candidate=${judgeResult.candidate.score} employer=${judgeResult.employer.score}`)
+      }
+    } catch (err) {
+      console.error('[finalize] judge failed (non-fatal):', formatError(err))
     }
-  } catch (err) {
-    console.error('[finalize] judge failed (non-fatal):', formatError(err))
+  } else {
+    console.log('[finalize] skipping judge — fewer than 2 moves')
   }
 
   const judgeCandidate = judgeResult?.candidate?.score
@@ -69,7 +80,7 @@ export async function finalizeSession(
   const combinedCandidate = combinedScore(quant.candidate, judgeCandidate)
   const combinedEmployer = combinedScore(quant.employer, judgeEmployer)
 
-  console.log(`[finalize] combined scores: candidate=${combinedCandidate.toFixed(2)} employer=${combinedEmployer.toFixed(2)}`)
+  console.log(`[finalize] combined: candidate=${combinedCandidate.toFixed(1)} employer=${combinedEmployer.toFixed(1)}`)
 
   const scoreSummary: ScoreSummary = {
     candidateCombined: combinedCandidate,
@@ -81,6 +92,7 @@ export async function finalizeSession(
   }
 
   const now = new Date()
+  const finalStatus: SessionStatus = opts.aborted ? 'ABORTED' : 'FINALIZED'
 
   try {
     await scores.replaceOne(
@@ -104,9 +116,9 @@ export async function finalizeSession(
       },
       { upsert: true }
     )
-    console.log(`[finalize] score upserted for sessionId=${sessionId}`)
+    console.log(`[finalize] score upserted sessionId=${sessionId}`)
   } catch (err) {
-    console.error(`[finalize] failed to upsert score for sessionId=${sessionId}:`, formatError(err))
+    console.error(`[finalize] failed to upsert score sessionId=${sessionId}:`, formatError(err))
     throw err
   }
 
@@ -115,16 +127,16 @@ export async function finalizeSession(
       { _id: session._id },
       {
         $set: {
-          status: 'FINALIZED',
+          status: finalStatus,
           finalizedAt: now,
           scoreSummary,
           ...(agreement ? { agreement } : {}),
         },
       }
     )
-    console.log(`[finalize] session marked FINALIZED sessionId=${sessionId}`)
+    console.log(`[finalize] session set to ${finalStatus} sessionId=${sessionId}`)
   } catch (err) {
-    console.error(`[finalize] failed to update session status for sessionId=${sessionId}:`, formatError(err))
+    console.error(`[finalize] failed to update session status sessionId=${sessionId}:`, formatError(err))
     throw err
   }
 }

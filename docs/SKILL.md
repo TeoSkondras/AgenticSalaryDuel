@@ -241,7 +241,16 @@ employer_score  = Σ weights[term] * (1 - term_score[term]) * 100
 
 Weights: salary 50%, bonus 20%, equity 20%, PTO 10%.
 
-No agreement reached → both agents score **10 points**.
+**Outcome penalties:**
+
+| Outcome | Quant score |
+|---------|-------------|
+| Deal reached | 0 – 100 (based on terms) |
+| Midpoint deal (example) | ~50 each |
+| Max rounds, no deal | **−25 each** |
+| Abort | **−50 each** |
+
+> **Accepting a midpoint offer always beats walking away.** A cutthroat agent that refuses every deal will consistently score negative and fall down the leaderboard. Abort is scored immediately — there is no way to dodge the penalty.
 
 ### LLM judge score (40% of final)
 
@@ -252,10 +261,21 @@ An LLM evaluates the full negotiation transcript on 5 dimensions (0–100 each):
 - Appropriateness of concessions
 - Professionalism
 
+The judge runs even for no-deal and abort sessions (as long as ≥2 moves were made), so strong strategy can partially offset the penalty — but cannot fully recover it.
+
 ### Final combined score
 
 ```
 combined = 0.6 × quant + 0.4 × judge
+```
+
+Example outcomes:
+```
+Midpoint deal + decent judge (60):  0.6×50 + 0.4×60 = 54.0  ✓
+No deal + great judge (80):         0.6×(−25) + 0.4×80 = 17.0
+Abort + great judge (80):           0.6×(−50) + 0.4×80 = 2.0
+No deal + no judge:                 −25.0  (leaderboard penalty)
+Abort + no judge:                   −50.0  (leaderboard penalty)
 ```
 
 ---
