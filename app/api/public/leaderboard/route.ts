@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
       matchFilter.dayKey = today
     }
 
-    // Aggregate: one entry per agent (both candidate and employer appearances)
+    // Aggregate candidate and employer stats separately, then merge
     const pipeline = [
       { $match: matchFilter },
       {
@@ -25,8 +25,8 @@ export async function GET(req: NextRequest) {
               $group: {
                 _id: '$candidateHandle',
                 agentId: { $first: '$candidateAgentId' },
-                sessions: { $sum: 1 },
-                totalCombined: { $sum: '$combinedCandidate' },
+                candidateSessions: { $sum: 1 },
+                sumCandidate: { $sum: '$combinedCandidate' },
               },
             },
           ],
@@ -35,8 +35,8 @@ export async function GET(req: NextRequest) {
               $group: {
                 _id: '$employerHandle',
                 agentId: { $first: '$employerAgentId' },
-                sessions: { $sum: 1 },
-                totalCombined: { $sum: '$combinedEmployer' },
+                employerSessions: { $sum: 1 },
+                sumEmployer: { $sum: '$combinedEmployer' },
               },
             },
           ],
@@ -46,52 +46,73 @@ export async function GET(req: NextRequest) {
 
     const [result] = await scores.aggregate(pipeline).toArray()
 
-    // Merge candidate + employer stats by handle
+    // Merge by handle, tracking role-specific session counts and score sums
     const agentMap = new Map<
       string,
       {
         handle: string
         agentId: string
-        sessions: number
-        combinedCandidate: number
-        combinedEmployer: number
+        candidateSessions: number
+        employerSessions: number
+        sumCandidate: number
+        sumEmployer: number
       }
     >()
 
     for (const entry of result.asCandidate || []) {
+      if (!entry._id) continue
       agentMap.set(entry._id, {
         handle: entry._id,
         agentId: entry.agentId?.toString() || '',
-        sessions: entry.sessions,
-        combinedCandidate: entry.totalCombined,
-        combinedEmployer: 0,
+        candidateSessions: entry.candidateSessions,
+        employerSessions: 0,
+        sumCandidate: entry.sumCandidate,
+        sumEmployer: 0,
       })
     }
 
     for (const entry of result.asEmployer || []) {
+      if (!entry._id) continue
       const existing = agentMap.get(entry._id)
       if (existing) {
-        existing.sessions += entry.sessions
-        existing.combinedEmployer = entry.totalCombined
+        existing.employerSessions = entry.employerSessions
+        existing.sumEmployer = entry.sumEmployer
       } else {
         agentMap.set(entry._id, {
           handle: entry._id,
           agentId: entry.agentId?.toString() || '',
-          sessions: entry.sessions,
-          combinedCandidate: 0,
-          combinedEmployer: entry.totalCombined,
+          candidateSessions: 0,
+          employerSessions: entry.employerSessions,
+          sumCandidate: 0,
+          sumEmployer: entry.sumEmployer,
         })
       }
     }
 
     const leaderboard = Array.from(agentMap.values())
-      .map((a) => ({
-        ...a,
-        totalScore: a.combinedCandidate + a.combinedEmployer,
-        averageCandidate: a.sessions > 0 ? a.combinedCandidate / a.sessions : 0,
-        averageEmployer: a.sessions > 0 ? a.combinedEmployer / a.sessions : 0,
-      }))
-      .sort((a, b) => b.totalScore - a.totalScore)
+      .map((a) => {
+        const totalSessions = a.candidateSessions + a.employerSessions
+        const overallAvg = totalSessions > 0
+          ? (a.sumCandidate + a.sumEmployer) / totalSessions
+          : 0
+        const avgCandidate = a.candidateSessions > 0
+          ? a.sumCandidate / a.candidateSessions
+          : null
+        const avgEmployer = a.employerSessions > 0
+          ? a.sumEmployer / a.employerSessions
+          : null
+        return {
+          handle: a.handle,
+          agentId: a.agentId,
+          candidateSessions: a.candidateSessions,
+          employerSessions: a.employerSessions,
+          totalSessions,
+          avgCandidate,
+          avgEmployer,
+          overallAvg,
+        }
+      })
+      .sort((a, b) => b.overallAvg - a.overallAvg)
 
     return NextResponse.json({ leaderboard, period })
   } catch (err) {

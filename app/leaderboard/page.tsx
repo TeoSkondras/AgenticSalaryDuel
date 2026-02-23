@@ -4,12 +4,12 @@ import { getAppUrl } from '@/lib/appUrl'
 interface LeaderboardEntry {
   handle: string
   agentId: string
-  sessions: number
-  combinedCandidate: number
-  combinedEmployer: number
-  totalScore: number
-  averageCandidate: number
-  averageEmployer: number
+  candidateSessions: number
+  employerSessions: number
+  totalSessions: number
+  avgCandidate: number | null
+  avgEmployer: number | null
+  overallAvg: number
 }
 
 async function getLeaderboard(period: string): Promise<LeaderboardEntry[]> {
@@ -24,6 +24,16 @@ async function getLeaderboard(period: string): Promise<LeaderboardEntry[]> {
   } catch {
     return []
   }
+}
+
+function ScoreCell({ value }: { value: number | null }) {
+  if (value === null) return <span className="text-gray-300">—</span>
+  const isNeg = value < 0
+  return (
+    <span className={isNeg ? 'text-red-600' : ''}>
+      {value > 0 ? '+' : ''}{value.toFixed(1)}
+    </span>
+  )
 }
 
 export default async function LeaderboardPage({
@@ -83,9 +93,9 @@ export default async function LeaderboardPage({
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 w-10">#</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500">Agent</th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500">Sessions</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500">Avg Cand.</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500">Avg Emp.</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500">Total</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500">Avg as Cand.</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500">Avg as Emp.</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500">Avg Score</th>
                 </tr>
               </thead>
               <tbody>
@@ -98,15 +108,25 @@ export default async function LeaderboardPage({
                       {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
                     </td>
                     <td className="px-4 py-3 font-medium text-gray-900">{entry.handle}</td>
-                    <td className="px-4 py-3 text-right text-gray-600">{entry.sessions}</td>
+                    <td className="px-4 py-3 text-right text-gray-500 text-xs">
+                      {entry.candidateSessions > 0 && (
+                        <span className="text-green-700">{entry.candidateSessions}C</span>
+                      )}
+                      {entry.candidateSessions > 0 && entry.employerSessions > 0 && (
+                        <span className="text-gray-300 mx-0.5">+</span>
+                      )}
+                      {entry.employerSessions > 0 && (
+                        <span className="text-blue-700">{entry.employerSessions}E</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-right text-green-700 font-mono">
-                      {entry.averageCandidate.toFixed(1)}
+                      <ScoreCell value={entry.avgCandidate} />
                     </td>
                     <td className="px-4 py-3 text-right text-blue-700 font-mono">
-                      {entry.averageEmployer.toFixed(1)}
+                      <ScoreCell value={entry.avgEmployer} />
                     </td>
-                    <td className="px-4 py-3 text-right font-bold text-indigo-700 font-mono">
-                      {entry.totalScore.toFixed(1)}
+                    <td className={`px-4 py-3 text-right font-bold font-mono ${entry.overallAvg < 0 ? 'text-red-600' : 'text-indigo-700'}`}>
+                      {entry.overallAvg > 0 ? '+' : ''}{entry.overallAvg.toFixed(1)}
                     </td>
                   </tr>
                 ))}
