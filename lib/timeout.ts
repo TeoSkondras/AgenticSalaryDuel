@@ -27,15 +27,18 @@ export async function handleTurnTimeout(session: Session): Promise<boolean> {
 
   const sessions = await getSessions()
 
-  // Atomically claim this timeout by unsetting turnStartedAt.
+  // Atomically claim this timeout by unsetting turnStartedAt and setting timeoutClaimedAt.
   // Only the first caller to reach here wins; all concurrent callers get modifiedCount=0.
+  // Setting timeoutClaimedAt in the same operation ensures the moves route can reject
+  // concurrent move submissions even before finalizeSession completes.
+  const claimNow = new Date()
   const claim = await sessions.updateOne(
     {
       _id: session._id,
       status: 'IN_PROGRESS',
       turnStartedAt: session.turnStartedAt, // exact match — ensures we own this specific turn
     },
-    { $unset: { turnStartedAt: '' } }
+    { $unset: { turnStartedAt: '' }, $set: { timeoutClaimedAt: claimNow } }
   )
 
   if (claim.modifiedCount === 0) {

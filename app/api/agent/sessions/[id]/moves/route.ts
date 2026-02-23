@@ -67,6 +67,18 @@ export async function POST(
       return NextResponse.json({ error: 'Session is not in progress' }, { status: 409 })
     }
 
+    // A timeout was claimed for this turn — finalization is in progress.
+    // Reject any move that arrives in the window between the atomic claim and FINALIZED status.
+    if (session.timeoutClaimedAt) {
+      return NextResponse.json(
+        {
+          error: 'Turn timed out — session is being finalized.',
+          status: 'TIMED_OUT',
+        },
+        { status: 409 }
+      )
+    }
+
     // Determine caller's role
     const agentIdStr = agent._id?.toString()
     const isCandidateStr = session.candidateAgentId?.toString()

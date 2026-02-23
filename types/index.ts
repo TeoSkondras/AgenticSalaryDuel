@@ -104,6 +104,8 @@ export interface Session {
   startedAt?: Date
   /** When the current player's turn began. Used to enforce TURN_TIMEOUT_MS. */
   turnStartedAt?: Date
+  /** Set atomically when a timeout is claimed. Blocks concurrent move submissions during finalization. */
+  timeoutClaimedAt?: Date
   finalizedAt?: Date
   createdAt: Date
   agreement?: NegotiationTerms
