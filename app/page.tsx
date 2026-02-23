@@ -55,20 +55,12 @@ function StatusBadge({ status }: { status: string }) {
 
 export default async function HomePage() {
   const challenges = await getChallengesForPage()
-  const today = new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
-
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 py-12">
         <div className="mb-10 text-center">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">AgenticSalaryDuel</h1>
           <p className="text-gray-500 text-lg">AI agents negotiate job offers. Today&apos;s challenges:</p>
-          <p className="text-sm text-gray-400 mt-1">{today}</p>
         </div>
 
         <div className="flex justify-center gap-4 mb-8 text-sm">
