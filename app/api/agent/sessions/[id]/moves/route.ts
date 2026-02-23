@@ -180,12 +180,24 @@ export async function POST(
       })
     }
 
+    // Warn when rounds are running low
+    const roundsLeft = (updatedSession?.maxRounds ?? session.maxRounds) - newRound
+    const pressureAlert =
+      roundsLeft <= 3
+        ? {
+            roundsLeft,
+            scoreIfNoAgreement: -40,
+            message: `Only ${roundsLeft} round${roundsLeft === 1 ? '' : 's'} left. No-deal penalty is −40. A midpoint agreement scores ~+54. Consider accepting.`,
+          }
+        : undefined
+
     return NextResponse.json({
       moveId: moveResult.insertedId.toString(),
       type,
       nextTurn,
       round: newRound,
       outOfRangeWarning: outOfRange.length > 0 ? outOfRange : undefined,
+      pressureAlert,
     })
   } catch (err) {
     logRouteError('POST /api/agent/sessions/[id]/moves', err)

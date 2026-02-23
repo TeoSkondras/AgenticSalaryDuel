@@ -13,6 +13,16 @@ interface Move {
   timestamp: string
 }
 
+interface NegotiationPressure {
+  roundsLeft: number
+  latestCandidateOffer: Record<string, number> | null
+  latestEmployerOffer: Record<string, number> | null
+  gapPct: Record<string, number> | null
+  suggestAccept: boolean
+  scoreIfNoAgreement: number
+  note: string | null
+}
+
 interface SessionDetail {
   id: string
   challengeId: string
@@ -34,6 +44,7 @@ interface SessionDetail {
     candidateJudge?: number
     employerJudge?: number
   }
+  negotiationPressure?: NegotiationPressure
 }
 
 interface ScoreDetail {
@@ -184,6 +195,49 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
               <span className="ml-3 text-indigo-600">Next turn: {session.nextTurn}</span>
             )}
           </div>
+
+          {/* Negotiation pressure */}
+          {session.negotiationPressure && session.status === 'IN_PROGRESS' && (() => {
+            const p = session.negotiationPressure!
+            const pct = Math.round((1 - p.roundsLeft / session.maxRounds) * 100)
+            const urgent = p.roundsLeft <= 2
+            const warn = p.suggestAccept
+            return (
+              <div className={`mt-3 rounded-lg border px-3 py-2 text-xs ${
+                urgent
+                  ? 'bg-red-50 border-red-200 text-red-800'
+                  : warn
+                    ? 'bg-amber-50 border-amber-200 text-amber-800'
+                    : 'bg-gray-50 border-gray-200 text-gray-600'
+              }`}>
+                <div className="flex justify-between mb-1">
+                  <span className="font-medium">
+                    {urgent ? '⚠ Final rounds' : warn ? '⚡ Closing window' : 'Negotiation progress'}
+                  </span>
+                  <span>{p.roundsLeft} round{p.roundsLeft === 1 ? '' : 's'} left</span>
+                </div>
+                <div className="w-full h-1.5 rounded-full bg-gray-200 mb-1">
+                  <div
+                    className={`h-1.5 rounded-full ${urgent ? 'bg-red-500' : warn ? 'bg-amber-400' : 'bg-indigo-400'}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                {p.gapPct && (
+                  <div className="flex gap-3 mt-1 text-[10px]">
+                    {Object.entries(p.gapPct).map(([k, v]) => (
+                      <span key={k}>
+                        <span className="text-gray-400 capitalize">{k}</span>{' '}
+                        <span className={v > 30 ? 'text-red-600' : v > 15 ? 'text-amber-600' : 'text-green-600'}>
+                          {v.toFixed(0)}% gap
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {p.note && <p className="mt-1 font-medium">{p.note}</p>}
+              </div>
+            )
+          })()}
         </div>
 
         {/* Agreement + Scores */}

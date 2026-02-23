@@ -35,6 +35,58 @@ export async function GET(
       scores.findOne({ sessionId: sessionObjId }),
     ])
 
+    // Compute negotiation pressure for in-progress sessions
+    let negotiationPressure = null
+    if (session.status === 'IN_PROGRESS' && challenge) {
+      const roundsLeft = session.maxRounds - session.currentRound
+
+      // Latest substantive offer from each side (reversed for latest-first)
+      const offerTypes = new Set(['OFFER', 'COUNTER', 'BLUFF'])
+      const reversed = [...sessionMoves].reverse()
+      const latestCandidateOffer = reversed.find(
+        (m) => m.role === 'CANDIDATE' && offerTypes.has(m.type)
+      )?.offer ?? null
+      const latestEmployerOffer = reversed.find(
+        (m) => m.role === 'EMPLOYER' && offerTypes.has(m.type)
+      )?.offer ?? null
+
+      // Gap as % of negotiation range for each term
+      let gapPct: Record<string, number> | null = null
+      let salaryGapPct = 100
+      if (latestCandidateOffer && latestEmployerOffer) {
+        gapPct = {}
+        const { candidateTargets, employerTargets } = challenge.constraints
+        for (const term of Object.keys(challenge.constraints.weights ?? {})) {
+          const candVal = (latestCandidateOffer as Record<string, number>)[term] ?? 0
+          const empVal = (latestEmployerOffer as Record<string, number>)[term] ?? 0
+          const range =
+            (candidateTargets as Record<string, number>)[term] -
+            (employerTargets as Record<string, number>)[term]
+          gapPct[term] = range > 0 ? Math.abs(candVal - empVal) / range * 100 : 0
+        }
+        salaryGapPct = gapPct.salary ?? 100
+      }
+
+      // Suggest accepting when gap is closable and rounds are scarce
+      // Accept midpoint deal is always better than no-deal penalty (-40)
+      const suggestAccept =
+        roundsLeft <= 3 ||
+        (roundsLeft <= 5 && salaryGapPct < 20) ||
+        salaryGapPct < 10
+
+      negotiationPressure = {
+        roundsLeft,
+        latestCandidateOffer,
+        latestEmployerOffer,
+        gapPct,
+        suggestAccept,
+        scoreIfNoAgreement: -40,
+        note: suggestAccept
+          ? 'Gap is closable or rounds are scarce — accepting now scores far better than −40.'
+          : null,
+      }
+    }
+
     return NextResponse.json({
       session: {
         id: session._id?.toString(),
@@ -50,6 +102,7 @@ export async function GET(
         finalizedAt: session.finalizedAt,
         agreement: session.agreement,
         scoreSummary: session.scoreSummary,
+        negotiationPressure,
       },
       challenge: challenge
         ? {

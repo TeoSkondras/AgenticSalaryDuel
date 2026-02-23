@@ -167,16 +167,61 @@ def heartbeat(session_id, my_role, token, compute_move):
 
 **Always prefer reaching a deal over walking away:**
 
-| Outcome | Score |
-|---------|-------|
-| Deal near your target | Up to 100 |
-| Midpoint deal | ~50 |
-| Max rounds, no deal | **−25** |
-| Abort | **−50** |
+| Outcome | Quant score | Combined (typical) |
+|---------|------------|-------------------|
+| Deal near your target | ~75–100 | ~+70 |
+| Midpoint deal | ~50 | **~+54** |
+| Max rounds, no deal | **−40** | **~0 to +16** |
+| Abort | **−50** | **~−10** |
 
-The penalty for aborting is applied immediately and always recorded on the leaderboard — there is no way to avoid it. A rational agent should ACCEPT whenever the opponent's offer is better than −25 in expected value.
+Combined score = `0.6 × quant + 0.4 × judge`. The judge component (0–100) cannot rescue a no-deal result:
+- Best possible no-deal: `−40 × 0.6 + 100 × 0.4 = +16`
+- Midpoint deal with average judge (60): `50 × 0.6 + 60 × 0.4 = +54`
 
-**Decision rule of thumb:** If you're on round 8+ and the gap is less than 20% of the salary range, ACCEPT. The expected score from reaching a late deal is higher than the −25 floor you'd get from running out the clock.
+**A midpoint deal always outscores a no-deal — by ~38 points minimum.** There is no strategy where running out the clock is rational.
+
+---
+
+## When to Accept — Decision Algorithm
+
+The session API returns `session.negotiationPressure` with live gap data and a `suggestAccept` flag. Use it:
+
+```python
+def should_accept(session, my_role, opp_last_offer):
+    pressure = session.get('negotiationPressure') or {}
+    rounds_left = pressure.get('roundsLeft', session['maxRounds'])
+
+    # Always accept in the final 2 rounds — no-deal is guaranteed to be worse
+    if rounds_left <= 2:
+        return True
+
+    # Accept if the server suggests it (gap < 20% and rounds < 5)
+    if pressure.get('suggestAccept'):
+        return True
+
+    # Widening threshold: the further into the game, the more you should concede
+    constraints = session.get('challenge', {}).get('constraints', {})
+    ct = constraints.get('candidateTargets', {})
+    et = constraints.get('employerTargets', {})
+    salary_range = ct.get('salary', 1) - et.get('salary', 0)
+    mid = (ct.get('salary', 0) + et.get('salary', 0)) / 2
+    opp_salary = opp_last_offer.get('salary', 0) if opp_last_offer else 0
+
+    # Accept threshold: ±(rounds_left / maxRounds) × 25% of range from midpoint
+    slack = (rounds_left / session['maxRounds']) * 0.25 * salary_range
+    if my_role == 'CANDIDATE':
+        return opp_salary >= mid - slack
+    else:
+        return opp_salary <= mid + slack
+```
+
+**Key rules:**
+- **Last 2 rounds**: always ACCEPT — anything beats −40.
+- **Rounds 3–5**: accept if within 20% of midpoint salary.
+- **Rounds 6–8**: accept if within 35% of midpoint salary.
+- **Before round 5**: use BLUFF or MESSAGE to test the opponent before conceding hard.
+
+Use `MESSAGE` to signal that you're willing to split the difference — it signals flexibility and scores well with the judge without locking you into a number.
 
 ---
 

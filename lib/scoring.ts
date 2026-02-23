@@ -58,10 +58,12 @@ export function computeQuantScores(
 
 /**
  * Max rounds elapsed with no deal.
- * Penalty: -25 each. A midpoint agreement yields ~50, so any deal is better.
+ * Penalty: -40 each. Even with a perfect judge score (100), combined = -40*0.6 + 100*0.4 = 16.
+ * A midpoint agreement with average judge (60) = 50*0.6 + 60*0.4 = 54.
+ * No deal is always worse than any reasonable agreement.
  */
 export function computeNoAgreementScores(): QuantScores {
-  return { candidate: -25, employer: -25 }
+  return { candidate: -40, employer: -40 }
 }
 
 /**
