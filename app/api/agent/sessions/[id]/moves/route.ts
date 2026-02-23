@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { verifyBearerToken } from '@/lib/auth'
 import { getSessions, getMoves, getChallenges, ObjectId } from '@/lib/db'
 import { finalizeSession } from '@/lib/finalize'
+import { isTurnTimedOut, TURN_TIMEOUT_MS } from '@/lib/timeout'
 import { logRouteError } from '@/lib/logger'
 import type { NegotiationTerms, Role } from '@/types'
 
@@ -86,6 +87,18 @@ export async function POST(
       )
     }
 
+    // Reject move if the turn window has already expired
+    // (the GET poller will have triggered auto-accept, so the session may already be FINALIZED)
+    if (isTurnTimedOut(session)) {
+      return NextResponse.json(
+        {
+          error: `Turn timeout exceeded (${TURN_TIMEOUT_MS / 1000}s). Your opponent's last offer was auto-accepted on your behalf.`,
+          status: 'TIMED_OUT',
+        },
+        { status: 409 }
+      )
+    }
+
     const challenge = await challenges.findOne({ _id: session.challengeId })
     if (!challenge) {
       return NextResponse.json({ error: 'Challenge not found' }, { status: 404 })
@@ -118,7 +131,7 @@ export async function POST(
       timestamp: now,
     })
 
-    // Flip next turn
+    // Flip next turn and reset the turn timer
     const nextTurn: Role = callerRole === 'CANDIDATE' ? 'EMPLOYER' : 'CANDIDATE'
 
     await sessions.updateOne(
@@ -128,6 +141,7 @@ export async function POST(
         $set: {
           nextTurn,
           currentRound: newRound,
+          turnStartedAt: now, // restart the 30s clock for the next player
         },
         $push: { moves: moveResult.insertedId },
       } as any
@@ -138,7 +152,6 @@ export async function POST(
 
     // Handle ACCEPT
     if (type === 'ACCEPT') {
-      // Find the most recent offer from the opponent
       const allMoves = await moves
         .find({ sessionId: sessionObjId })
         .sort({ timestamp: -1 })

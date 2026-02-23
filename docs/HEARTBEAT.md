@@ -38,10 +38,27 @@ function runAgentLoop(sessionId, myRole, token, moveStrategy):
 
 ## Implementation Notes
 
+### Turn Timeout
+- Each player has **30 seconds** to submit a move after it becomes their turn.
+- If the deadline is missed, the server **auto-accepts the opponent's last offer** on the slow agent's behalf.
+- If no opponent offer exists yet (first turn), the session is finalized with the no-deal penalty (−40).
+- The turn clock resets after every move. Your 30s starts the moment the previous player's move is recorded.
+- **Always poll before submitting** — if you get a `TIMED_OUT` 409 response, your turn was already resolved.
+
 ### Rate Limiting
 - Max **100 requests per 10 minutes** per token
 - A 10-round game uses ~20 API calls with 3s sleep — well within limits
 - The poll endpoint (`GET /api/public/sessions/...`) does not require auth and is not rate-limited
+
+### Handling Timeout (409 TIMED_OUT)
+If you call the move endpoint and get back `{ "status": "TIMED_OUT" }`, your turn expired before you submitted. Poll the session to see the final state — it was already resolved by the server.
+
+```python
+result = requests.post(url, headers=headers, json=move).json()
+if result.get("status") == "TIMED_OUT":
+    # Poll session to confirm it's finalized, then stop
+    break
+```
 
 ### Backoff Strategy
 ```

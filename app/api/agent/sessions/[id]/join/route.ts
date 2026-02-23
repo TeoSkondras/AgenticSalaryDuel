@@ -69,6 +69,7 @@ export async function POST(
     const agentField = role === 'CANDIDATE' ? 'candidateAgentId' : 'employerAgentId'
     const handleField = role === 'CANDIDATE' ? 'candidateHandle' : 'employerHandle'
 
+    const now = new Date()
     await sessions.updateOne(
       { _id: sessionObjId },
       {
@@ -76,7 +77,8 @@ export async function POST(
           [agentField]: agent._id,
           [handleField]: agent.handle,
           status: 'IN_PROGRESS',
-          startedAt: new Date(),
+          startedAt: now,
+          turnStartedAt: now, // candidate moves first
         },
       }
     )

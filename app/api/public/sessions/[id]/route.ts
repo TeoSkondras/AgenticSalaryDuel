@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSessions, getMoves, getChallenges, getScores, ObjectId } from '@/lib/db'
+import { handleTurnTimeout } from '@/lib/timeout'
 import { logRouteError } from '@/lib/logger'
 
 export async function GET(
@@ -27,6 +28,16 @@ export async function GET(
 
     if (!session) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+    }
+
+    // Check for turn timeout — auto-accept the opponent's last offer if the current
+    // player hasn't moved in TURN_TIMEOUT_MS. Re-fetch the session after finalization.
+    if (session.status === 'IN_PROGRESS') {
+      const timedOut = await handleTurnTimeout(session)
+      if (timedOut) {
+        const fresh = await sessions.findOne({ _id: sessionObjId })
+        if (fresh) Object.assign(session, fresh)
+      }
     }
 
     const [sessionMoves, challenge, score] = await Promise.all([

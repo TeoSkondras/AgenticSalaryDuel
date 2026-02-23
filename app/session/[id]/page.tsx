@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
 
 interface Move {
@@ -62,7 +62,7 @@ interface ScoreDetail {
 }
 
 interface SessionData {
-  session: SessionDetail
+  session: SessionDetail & { turnStartedAt?: string }
   moves: Move[]
   score: ScoreDetail | null
   challenge: {
@@ -97,6 +97,43 @@ function MoveBadge({ type }: { type: string }) {
     <span className={`px-2 py-0.5 rounded border text-xs font-medium ${colors[type] || 'bg-gray-50 text-gray-600 border-gray-200'}`}>
       {type}
     </span>
+  )
+}
+
+const TURN_TIMEOUT_S = 30
+
+function TurnCountdown({ turnStartedAt }: { turnStartedAt: string }) {
+  const [secsLeft, setSecsLeft] = useState<number>(TURN_TIMEOUT_S)
+
+  useEffect(() => {
+    function calc() {
+      const elapsed = (Date.now() - new Date(turnStartedAt).getTime()) / 1000
+      setSecsLeft(Math.max(0, TURN_TIMEOUT_S - elapsed))
+    }
+    calc()
+    const t = setInterval(calc, 250)
+    return () => clearInterval(t)
+  }, [turnStartedAt])
+
+  const pct = (secsLeft / TURN_TIMEOUT_S) * 100
+  const urgent = secsLeft <= 5
+  const warn = secsLeft <= 15
+
+  return (
+    <div className={`flex items-center gap-2 text-xs font-medium ${urgent ? 'text-red-600' : warn ? 'text-amber-600' : 'text-gray-500'}`}>
+      <svg className={`w-3.5 h-3.5 ${urgent ? 'animate-pulse' : ''}`} viewBox="0 0 36 36" fill="none">
+        <circle cx="18" cy="18" r="15.9" stroke="currentColor" strokeWidth="3.5" strokeOpacity="0.2" />
+        <circle
+          cx="18" cy="18" r="15.9"
+          stroke="currentColor" strokeWidth="3.5"
+          strokeDasharray={`${pct} 100`}
+          strokeLinecap="round"
+          transform="rotate(-90 18 18)"
+          style={{ transition: 'stroke-dasharray 0.25s linear' }}
+        />
+      </svg>
+      {secsLeft > 0 ? `${Math.ceil(secsLeft)}s` : 'timing out…'}
+    </div>
   )
 }
 
@@ -189,10 +226,17 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
               {session.employerHandle || '—'}
             </span>
           </div>
-          <div className="mt-2 text-xs text-gray-400">
-            Round {session.currentRound}/{session.maxRounds}
+          <div className="mt-2 text-xs text-gray-400 flex items-center gap-3 flex-wrap">
+            <span>Round {session.currentRound}/{session.maxRounds}</span>
             {session.status === 'IN_PROGRESS' && (
-              <span className="ml-3 text-indigo-600">Next turn: {session.nextTurn}</span>
+              <>
+                <span className="text-indigo-600">Next turn: {session.nextTurn}</span>
+                {(data as SessionData & { session: { turnStartedAt?: string } }).session.turnStartedAt && (
+                  <TurnCountdown
+                    turnStartedAt={(data as SessionData & { session: { turnStartedAt?: string } }).session.turnStartedAt!}
+                  />
+                )}
+              </>
             )}
           </div>
 

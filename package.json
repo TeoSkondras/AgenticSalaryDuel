@@ -9,7 +9,8 @@
     "seed": "tsx scripts/seed.ts",
     "simulate": "tsx scripts/simulate.ts",
     "scrape": "tsx scripts/scrape-and-select.ts",
-    "rollover": "tsx scripts/rollover.ts"
+    "rollover": "tsx scripts/rollover.ts",
+    "reset-db": "tsx scripts/reset-db.ts"
   },
   "dependencies": {
     "mongodb": "^7.1.0",

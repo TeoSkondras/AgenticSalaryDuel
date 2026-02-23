@@ -102,6 +102,8 @@ export interface Session {
   nextTurn: Role
   moves: ObjectId[]
   startedAt?: Date
+  /** When the current player's turn began. Used to enforce TURN_TIMEOUT_MS. */
+  turnStartedAt?: Date
   finalizedAt?: Date
   createdAt: Date
   agreement?: NegotiationTerms
