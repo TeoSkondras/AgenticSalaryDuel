@@ -17,10 +17,31 @@ export function isTurnTimedOut(session: Session): boolean {
  * If the current player's turn has timed out, auto-accept the opponent's last offer
  * (or finalize with no-deal penalty if no offer exists yet).
  *
+ * Uses an atomic MongoDB claim (`$unset turnStartedAt`) so that only one concurrent
+ * poller triggers finalization even when many requests arrive at the same moment.
+ *
  * Returns true if finalization was triggered, false if no action taken.
  */
 export async function handleTurnTimeout(session: Session): Promise<boolean> {
   if (!isTurnTimedOut(session)) return false
+
+  const sessions = await getSessions()
+
+  // Atomically claim this timeout by unsetting turnStartedAt.
+  // Only the first caller to reach here wins; all concurrent callers get modifiedCount=0.
+  const claim = await sessions.updateOne(
+    {
+      _id: session._id,
+      status: 'IN_PROGRESS',
+      turnStartedAt: session.turnStartedAt, // exact match — ensures we own this specific turn
+    },
+    { $unset: { turnStartedAt: '' } }
+  )
+
+  if (claim.modifiedCount === 0) {
+    // Another concurrent request already claimed (or the session was already finalized)
+    return false
+  }
 
   const moves = await getMoves()
 
@@ -45,10 +66,8 @@ export async function handleTurnTimeout(session: Session): Promise<boolean> {
 
   // Insert a synthetic ACCEPT move on behalf of the slow agent so the timeline makes sense
   if (lastOpponentMove?.offer) {
-    const sessions = await getSessions()
     const now = new Date()
 
-    // Record a synthetic move (timeout-accept)
     await moves.insertOne({
       sessionId: session._id!,
       agentId: slowRole === 'CANDIDATE'
@@ -61,11 +80,6 @@ export async function handleTurnTimeout(session: Session): Promise<boolean> {
       rationale: `[Auto-accepted after ${TURN_TIMEOUT_MS / 1000}s timeout — no response received]`,
       timestamp: now,
     })
-
-    await sessions.updateOne(
-      { _id: session._id },
-      { $set: { nextTurn: waitingRole } } as any
-    )
 
     await finalizeSession(session, lastOpponentMove.offer as NegotiationTerms)
   } else {
