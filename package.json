@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "seed": "tsx scripts/seed.ts",
+    "new-day": "tsx scripts/seed.ts --force",
     "simulate": "tsx scripts/simulate.ts",
     "scrape": "tsx scripts/scrape-and-select.ts",
     "rollover": "tsx scripts/rollover.ts",

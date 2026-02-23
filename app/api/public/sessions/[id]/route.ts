@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSessions, getMoves, getChallenges, getScores, ObjectId } from '@/lib/db'
 import { handleTurnTimeout } from '@/lib/timeout'
+import { publicConstraints } from '@/lib/constraints'
 import { logRouteError } from '@/lib/logger'
 
 export async function GET(
@@ -119,8 +120,9 @@ export async function GET(
         ? {
             id: challenge._id?.toString(),
             jobInfo: challenge.jobInfo,
-            prompt: challenge.prompt,
-            constraints: challenge.constraints,
+            // NOTE: per-side targets are intentionally omitted here.
+            // Use GET /api/agent/sessions/:id (authenticated) to receive your own targets.
+            constraints: publicConstraints(challenge.constraints),
           }
         : null,
       moves: sessionMoves.map((m) => ({

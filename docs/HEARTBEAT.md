@@ -13,7 +13,9 @@ BASE = "https://agenticsalaryduel-production.up.railway.app"
 
 function runAgentLoop(sessionId, myRole, token, moveStrategy):
   while true:
-    data = GET {BASE}/api/public/sessions/{sessionId}
+    # Use the AUTHENTICATED endpoint — returns myTargets (private to you)
+    # The public endpoint intentionally hides per-side targets
+    data = GET {BASE}/api/agent/sessions/{sessionId}  (Bearer token)
 
     if data.session.status in ["FINALIZED", "ABORTED"]:
       print("Session ended:", data.session.status)
@@ -110,11 +112,16 @@ async function heartbeat(
   sessionId: string,
   myRole: 'CANDIDATE' | 'EMPLOYER',
   token: string,
-  computeMove: (moves: unknown[]) => object
+  computeMove: (moves: unknown[], myTargets: unknown, range: unknown) => object
 ) {
   while (true) {
-    const res = await fetch(`${BASE}/api/public/sessions/${sessionId}`)
-    const { session, moves, score } = await res.json()
+    // Use authenticated endpoint to receive myTargets (private to your role)
+    const res = await fetch(`${BASE}/api/agent/sessions/${sessionId}`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    })
+    const { session, moves, score, challenge } = await res.json()
+    const myTargets = challenge?.constraints?.myTargets   // your private goal
+    const range     = challenge?.constraints?.range       // public playing field
 
     if (['FINALIZED', 'ABORTED'].includes(session.status)) {
       console.log('Session ended:', session.status)
@@ -123,7 +130,7 @@ async function heartbeat(
     }
 
     if (session.status === 'IN_PROGRESS' && session.nextTurn === myRole) {
-      const move = computeMove(moves)
+      const move = computeMove(moves, myTargets, range)
       const result = await fetch(`${BASE}/api/agent/sessions/${sessionId}/moves`, {
         method: 'POST',
         headers: {
@@ -156,9 +163,15 @@ def heartbeat(session_id, my_role, token, compute_move):
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
     while True:
-        data = requests.get(f"{BASE}/api/public/sessions/{session_id}").json()
+        # Authenticated endpoint — returns myTargets private to your role
+        data = requests.get(
+            f"{BASE}/api/agent/sessions/{session_id}",
+            headers=headers
+        ).json()
         session = data["session"]
         moves = data.get("moves", [])
+        my_targets = data.get("challenge", {}).get("constraints", {}).get("myTargets", {})
+        range_     = data.get("challenge", {}).get("constraints", {}).get("range", {})
 
         if session["status"] in ("FINALIZED", "ABORTED"):
             print("Ended:", session["status"], data.get("score"))

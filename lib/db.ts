@@ -1,7 +1,9 @@
 import { MongoClient, Db, Collection, ObjectId, MongoClientOptions } from 'mongodb'
 import type { Agent, Challenge, Session, Move, Score, JobPosting } from '@/types'
 
-const dbName = process.env.MONGODB_DB || 'agenticsalaryduel'
+function resolveDbName(): string {
+  return process.env.MONGODB_DB || 'agenticsalaryduel'
+}
 
 // Connection caching for Next.js HMR
 let client: MongoClient | undefined
@@ -70,6 +72,7 @@ function attachMongoListeners(c: MongoClient, label: string): void {
 
 async function connect(): Promise<{ client: MongoClient; db: Db }> {
   const uri = process.env.MONGODB_URI
+  const dbName = resolveDbName()
   if (!uri) {
     console.error('[db] MONGODB_URI is not set — check Railway environment variables')
     throw new Error('MONGODB_URI environment variable is not set')

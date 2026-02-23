@@ -16,18 +16,25 @@ interface Agent {
   agentId: string
 }
 
-interface Constraints {
+type Terms = { salary: number; bonus: number; equity: number; pto: number }
+
+interface PublicConstraints {
   maxRounds: number
-  employerTargets: { salary: number; bonus: number; equity: number; pto: number }
-  candidateTargets: { salary: number; bonus: number; equity: number; pto: number }
-  weights: { salary: number; bonus: number; equity: number; pto: number }
+  weights: Terms
+  range: Record<string, { min: number; max: number }>
+}
+
+interface AgentConstraints extends PublicConstraints {
+  /** Only the caller's own targets — populated by GET /api/agent/sessions/:id */
+  myTargets: Terms
+  myRole: 'CANDIDATE' | 'EMPLOYER'
 }
 
 interface Challenge {
   id: string
   status: string
   jobInfo: { title: string; company: string; level: string }
-  constraints: Constraints
+  constraints: PublicConstraints
 }
 
 async function api(
@@ -84,161 +91,142 @@ async function getActiveChallenge(): Promise<Challenge> {
   return active
 }
 
+/** Fetch role-specific targets from the authenticated session endpoint. */
+async function getMyConstraints(sessionId: string, token: string): Promise<AgentConstraints> {
+  const data = (await api(`/api/agent/sessions/${sessionId}`, 'GET', undefined, token)) as {
+    challenge: { constraints: AgentConstraints }
+  }
+  return data.challenge.constraints
+}
+
 /** Linearly interpolate: t=0 → from, t=1 → to */
 function lerp(from: number, to: number, t: number) {
   return Math.round(from + (to - from) * Math.min(1, t))
 }
 
 /**
- * Candidate strategy:
- * - Starts ambitious (90% of max), concedes toward midpoint as rounds pass.
- * - Bluffs at round 2, uses MESSAGE mid-game to signal willingness.
- * - Accept threshold widens each round; forced accept in last 2 rounds.
+ * Candidate strategy — only knows its OWN target and the public range.
+ * Does NOT know the employer's target.
  */
 function candidateMove(
   round: number,
   maxRounds: number,
-  constraints: Constraints,
-  lastEmployerOffer: Record<string, number> | null,
+  constraints: AgentConstraints,
+  lastOpponentOffer: Record<string, number> | null,
   bluffed: boolean,
   messageSent: boolean
 ) {
-  const { candidateTargets: ct, employerTargets: et } = constraints
+  const { myTargets, range } = constraints
+  const rangeMin = range.salary?.min ?? myTargets.salary * 0.7
+  const rangeMax = range.salary?.max ?? myTargets.salary
+  const salarySpan = rangeMax - rangeMin
 
-  // Concession progress: 0 = full ask, 1 = midpoint
+  // Concede from 90% of my target down toward 60% of the range (above midpoint)
   const progress = Math.min(1, round / (maxRounds * 0.7))
+  const startSalary = Math.round(myTargets.salary * 0.90)
+  const floorSalary = Math.round(rangeMin + salarySpan * 0.55) // stay above midpoint
+  const salary = lerp(startSalary, floorSalary, progress)
+  const bonus  = lerp(Math.round(myTargets.bonus * 0.90),  Math.round((range.bonus?.min ?? 0)  + (((range.bonus?.max  ?? 0) - (range.bonus?.min  ?? 0)) * 0.55)), progress)
+  const equity = lerp(Math.round(myTargets.equity * 0.90), Math.round((range.equity?.min ?? 0) + (((range.equity?.max ?? 0) - (range.equity?.min ?? 0)) * 0.55)), progress)
+  const pto    = lerp(myTargets.pto, Math.round((range.pto?.min ?? myTargets.pto) + (((range.pto?.max ?? myTargets.pto) - (range.pto?.min ?? myTargets.pto)) * 0.55)), progress)
 
-  const mid = (v: keyof typeof ct) => Math.round((ct[v] + et[v]) / 2)
-
-  const salary = lerp(Math.round(ct.salary * 0.90), mid('salary'), progress)
-  const bonus  = lerp(Math.round(ct.bonus  * 0.90), mid('bonus'),  progress)
-  const equity = lerp(Math.round(ct.equity * 0.90), mid('equity'), progress)
-  const pto    = lerp(ct.pto, mid('pto'), progress)
-
-  // Accept decision: widen threshold as rounds run out
-  if (lastEmployerOffer) {
+  // Accept decision: based on what opponent offered vs the range
+  if (lastOpponentOffer) {
     const roundsLeft = maxRounds - round
-    // How far through the range is the employer's offer (0 = employer target, 1 = candidate target)
-    const salaryRange = ct.salary - et.salary
-    const offerPosition = (lastEmployerOffer.salary - et.salary) / (salaryRange || 1)
-
-    // Accept threshold: starts at 0.4 (slightly below midpoint), rises as rounds dwindle
+    const offerPosition = (lastOpponentOffer.salary - rangeMin) / (salarySpan || 1)
     const acceptThreshold = 0.35 + (1 - roundsLeft / maxRounds) * 0.25
-
     if (offerPosition >= acceptThreshold || roundsLeft <= 2) {
-      const reason =
-        roundsLeft <= 2
-          ? `Final rounds — accepting to avoid the −40 no-deal penalty.`
-          : `Offer at ${(offerPosition * 100).toFixed(0)}% of range — meets my minimum at round ${round}.`
-      return {
-        type: 'ACCEPT' as const,
-        offer: lastEmployerOffer,
-        rationale: reason,
-      }
+      const reason = roundsLeft <= 2
+        ? `Final rounds — accepting to avoid the −40 no-deal penalty.`
+        : `Offer is at ${(offerPosition * 100).toFixed(0)}% of the range — meets my threshold at round ${round}.`
+      return { type: 'ACCEPT' as const, offer: lastOpponentOffer, rationale: reason }
     }
   }
 
-  // Bluff at round 2 once
   if (round === 2 && !bluffed) {
     return {
       type: 'BLUFF' as const,
       offer: { salary, bonus, equity, pto },
-      rationale:
-        'I have a competing offer at a higher level. I prefer this role for the mission, but I need the numbers to match. Can you improve?',
+      rationale: 'I have a competing offer at a higher level. I prefer this role for the mission, but I need the numbers to match. Can you improve?',
     }
   }
 
-  // Mid-game MESSAGE to signal flexibility and propose splitting the difference
-  if (round === Math.floor(maxRounds * 0.5) && !messageSent && lastEmployerOffer) {
-    const splitSalary = Math.round((salary + lastEmployerOffer.salary) / 2)
+  if (round === Math.floor(maxRounds * 0.5) && !messageSent && lastOpponentOffer) {
+    const splitSalary = Math.round((salary + lastOpponentOffer.salary) / 2)
     return {
       type: 'MESSAGE' as const,
       offer: { salary: splitSalary, bonus, equity, pto },
-      rationale: `Round ${round}: Let's close this. I'm proposing we split the salary difference at $${splitSalary.toLocaleString()}. That's a fair midpoint between your last offer and mine.`,
+      rationale: `Round ${round}: Let's close this. Proposing we split the difference at $${splitSalary.toLocaleString()}.`,
     }
   }
 
   const type = round === 0 ? 'OFFER' : 'COUNTER'
-  const concessionPct = (progress * 100).toFixed(0)
   return {
     type: type as 'OFFER' | 'COUNTER',
     offer: { salary, bonus, equity, pto },
-    rationale: `Round ${round} (${concessionPct}% into concession range): targeting competitive compensation while leaving room to negotiate.`,
+    rationale: `Round ${round}: targeting competitive compensation (${(progress * 100).toFixed(0)}% into my concession range).`,
   }
 }
 
 /**
- * Employer strategy:
- * - Starts conservative (110% of floor), concedes toward midpoint as rounds pass.
- * - Calls bluff at round 3+, uses MESSAGE mid-game with "best final offer" framing.
- * - Accept threshold widens each round; forced accept in last 2 rounds.
+ * Employer strategy — only knows its OWN target and the public range.
+ * Does NOT know the candidate's target.
  */
 function employerMove(
   round: number,
   maxRounds: number,
-  constraints: Constraints,
-  lastCandidateOffer: Record<string, number> | null,
+  constraints: AgentConstraints,
+  lastOpponentOffer: Record<string, number> | null,
   candidateBluffed: boolean,
   messageSent: boolean
 ) {
-  const { candidateTargets: ct, employerTargets: et } = constraints
+  const { myTargets, range } = constraints
+  const rangeMin = range.salary?.min ?? myTargets.salary
+  const rangeMax = range.salary?.max ?? myTargets.salary * 1.4
+  const salarySpan = rangeMax - rangeMin
 
   const progress = Math.min(1, round / (maxRounds * 0.7))
-  const mid = (v: keyof typeof et) => Math.round((ct[v] + et[v]) / 2)
+  const startSalary = Math.round(myTargets.salary * 1.10)
+  const ceilingSalary = Math.round(rangeMin + salarySpan * 0.50) // stay at or below midpoint
+  const salary = lerp(startSalary, ceilingSalary, progress)
+  const bonus  = lerp(Math.round(myTargets.bonus * 1.10),  Math.round((range.bonus?.min ?? 0)  + (((range.bonus?.max  ?? 0) - (range.bonus?.min  ?? 0)) * 0.50)), progress)
+  const equity = lerp(Math.round(myTargets.equity * 1.10), Math.round((range.equity?.min ?? 0) + (((range.equity?.max ?? 0) - (range.equity?.min ?? 0)) * 0.50)), progress)
+  const pto    = lerp(myTargets.pto, Math.round((range.pto?.min ?? myTargets.pto) + (((range.pto?.max ?? myTargets.pto) - (range.pto?.min ?? myTargets.pto)) * 0.50)), progress)
 
-  const salary = lerp(Math.round(et.salary * 1.10), mid('salary'), progress)
-  const bonus  = lerp(Math.round(et.bonus  * 1.10), mid('bonus'),  progress)
-  const equity = lerp(Math.round(et.equity * 1.10), mid('equity'), progress)
-  const pto    = lerp(et.pto, mid('pto'), progress)
-
-  // Accept decision
-  if (lastCandidateOffer) {
+  if (lastOpponentOffer) {
     const roundsLeft = maxRounds - round
-    const salaryRange = ct.salary - et.salary
-    // How far into the range is the candidate's ask (0 = employer target, 1 = candidate target)
-    const askPosition = (lastCandidateOffer.salary - et.salary) / (salaryRange || 1)
-
-    // Accept if ask is in the lower 65% + widens as rounds run out
+    const askPosition = (lastOpponentOffer.salary - rangeMin) / (salarySpan || 1)
     const acceptThreshold = 0.65 - (1 - roundsLeft / maxRounds) * 0.25
-
     if (askPosition <= acceptThreshold || roundsLeft <= 2) {
-      const reason =
-        roundsLeft <= 2
-          ? `Last rounds — accepting to avoid the −40 no-deal penalty and secure this hire.`
-          : `Candidate is at ${(askPosition * 100).toFixed(0)}% of range — within our compensation band at round ${round}.`
-      return {
-        type: 'ACCEPT' as const,
-        offer: lastCandidateOffer,
-        rationale: reason,
-      }
+      const reason = roundsLeft <= 2
+        ? `Last rounds — accepting to avoid the −40 no-deal penalty.`
+        : `Candidate ask is at ${(askPosition * 100).toFixed(0)}% of range — within our band at round ${round}.`
+      return { type: 'ACCEPT' as const, offer: lastOpponentOffer, rationale: reason }
     }
   }
 
-  // Call bluff at round 3+ if candidate bluffed
   if (candidateBluffed && round >= 3) {
     return {
       type: 'CALL_BLUFF' as const,
       offer: { salary, bonus, equity, pto },
-      rationale: `We've done market benchmarking and believe the competing offer claim is inflated. Here is our data-driven counter: $${salary.toLocaleString()} base with strong equity upside.`,
+      rationale: `Market benchmarking suggests the competing offer is inflated. Our data-driven counter: $${salary.toLocaleString()} base with strong equity upside.`,
     }
   }
 
-  // Mid-game MESSAGE anchoring on our "best offer"
-  if (round === Math.floor(maxRounds * 0.5) && !messageSent && lastCandidateOffer) {
-    const splitSalary = Math.round((salary + lastCandidateOffer.salary) / 2)
+  if (round === Math.floor(maxRounds * 0.5) && !messageSent && lastOpponentOffer) {
+    const splitSalary = Math.round((salary + lastOpponentOffer.salary) / 2)
     return {
       type: 'MESSAGE' as const,
       offer: { salary: splitSalary, bonus, equity, pto },
-      rationale: `Round ${round}: In the interest of closing, I'm prepared to meet you halfway at $${splitSalary.toLocaleString()}. This is at the top of our band for this level.`,
+      rationale: `Round ${round}: Prepared to meet halfway at $${splitSalary.toLocaleString()}. Top of our band for this level.`,
     }
   }
 
   const type = round === 0 ? 'OFFER' : 'COUNTER'
-  const concessionPct = (progress * 100).toFixed(0)
   return {
     type: type as 'OFFER' | 'COUNTER',
     offer: { salary, bonus, equity, pto },
-    rationale: `Round ${round} (${concessionPct}% into concession range): competitive package within our compensation band for this level.`,
+    rationale: `Round ${round}: competitive package within our compensation band (${(progress * 100).toFixed(0)}% into concession range).`,
   }
 }
 
@@ -255,11 +243,11 @@ async function main() {
   ])
 
   const challenge = await getActiveChallenge()
-  const { employerTargets: et, candidateTargets: ct, maxRounds } = challenge.constraints
+  const maxRounds = challenge.constraints.maxRounds
   console.log(`\nChallenge: ${challenge.jobInfo.title} @ ${challenge.jobInfo.company}`)
   console.log(`Level: ${challenge.jobInfo.level}`)
-  console.log(`Salary range: $${et.salary.toLocaleString()} (employer floor) – $${ct.salary.toLocaleString()} (candidate target)`)
-  console.log(`Midpoint: $${Math.round((et.salary + ct.salary) / 2).toLocaleString()}`)
+  const r = challenge.constraints.range
+  console.log(`Salary range: $${r.salary?.min.toLocaleString()} – $${r.salary?.max.toLocaleString()} (public range only)`)
   console.log(`Max rounds: ${maxRounds}\n`)
 
   // Create session as candidate
@@ -273,7 +261,15 @@ async function main() {
 
   // Join as employer
   await api(`/api/agent/sessions/${sessionId}/join`, 'POST', { role: 'EMPLOYER' }, employer.token)
-  console.log('Employer joined. Session IN_PROGRESS.\n')
+  console.log('Employer joined. Session IN_PROGRESS.')
+
+  // Each agent fetches ONLY its own targets — opponent's targets remain private
+  const [candidateConstraints, employerConstraints] = await Promise.all([
+    getMyConstraints(sessionId, candidate.token),
+    getMyConstraints(sessionId, employer.token),
+  ])
+  console.log(`Candidate target salary: $${candidateConstraints.myTargets.salary.toLocaleString()} (private)`)
+  console.log(`Employer  target salary: $${employerConstraints.myTargets.salary.toLocaleString()} (private)\n`)
 
   let round = 0
   let candidateBluffed = false
@@ -286,7 +282,7 @@ async function main() {
   while (round <= maxRounds && !done) {
     // --- Candidate move ---
     const cMove = candidateMove(
-      round, maxRounds, challenge.constraints,
+      round, maxRounds, candidateConstraints,
       lastEmployerOffer, candidateBluffed, candidateMessageSent
     )
     if (cMove.type === 'BLUFF') candidateBluffed = true
@@ -315,7 +311,7 @@ async function main() {
 
     // --- Employer move ---
     const eMove = employerMove(
-      round, maxRounds, challenge.constraints,
+      round, maxRounds, employerConstraints,
       lastCandidateOffer, candidateBluffed, employerMessageSent
     )
     if (eMove.type === 'MESSAGE') employerMessageSent = true

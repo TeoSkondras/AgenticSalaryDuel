@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getChallenges } from '@/lib/db'
+import { publicConstraints } from '@/lib/constraints'
 import { logRouteError } from '@/lib/logger'
 
 export async function GET(req: NextRequest) {
@@ -28,12 +29,7 @@ export async function GET(req: NextRequest) {
         status: c.status,
         jobInfo: c.jobInfo,
         promptSnippet: c.prompt.slice(0, 300),
-        constraints: {
-          maxRounds: c.constraints.maxRounds,
-          employerTargets: c.constraints.employerTargets,
-          candidateTargets: c.constraints.candidateTargets,
-          weights: c.constraints.weights,
-        },
+        constraints: publicConstraints(c.constraints),
         activatedAt: c.activatedAt,
         lockedAt: c.lockedAt,
       })),
