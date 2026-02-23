@@ -46,7 +46,7 @@ export async function judgeSession(
   }
 
   const openai = getOpenAI()
-  const model = process.env.GPT_MODEL || 'gpt-4o'
+  const model = process.env.GPT_MODEL || 'gpt-5-nano'
 
   const transcript = moves
     .map((m) => {

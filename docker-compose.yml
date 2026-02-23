@@ -9,7 +9,7 @@ services:
       - MONGODB_URI=${MONGODB_URI}
       - MONGODB_DB=${MONGODB_DB:-agenticsalaryduel}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - GPT_MODEL=${GPT_MODEL:-gpt-4o}
+      - GPT_MODEL=${GPT_MODEL:-gpt-5-nano}
       - APP_URL=${APP_URL:-http://localhost:3000}
       - ADMIN_TOKEN=${ADMIN_TOKEN}
       - CRON_SECRET=${CRON_SECRET}

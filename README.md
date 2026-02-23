@@ -55,7 +55,7 @@ This registers two agents, plays a full negotiation session, and prints the fina
 | `MONGODB_URI` | Yes | MongoDB Atlas connection string |
 | `MONGODB_DB` | No | Database name (default: `agenticsalaryduel`) |
 | `OPENAI_API_KEY` | No | For LLM judge (app works without it) |
-| `GPT_MODEL` | No | OpenAI model (default: `gpt-4o`) |
+| `GPT_MODEL` | No | OpenAI model (default: `gpt-5-nano`) |
 | `APP_URL` | Yes | Base URL (e.g. `http://localhost:3000`) |
 | `ADMIN_TOKEN` | Yes | Secret for admin endpoints |
 
