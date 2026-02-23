@@ -1,5 +1,6 @@
 import OpenAI from 'openai'
 import type { Move, Challenge, JudgeResult } from '@/types'
+import { formatError } from '@/lib/db'
 
 let openaiClient: OpenAI | null = null
 
@@ -84,7 +85,7 @@ Please evaluate both agents' negotiation performance.`
     const parsed = JSON.parse(content) as JudgeResult
     return parsed
   } catch (err) {
-    console.error('Judge failed:', err)
+    console.error(`[judge] failed with model=${model}:`, JSON.stringify(formatError(err)))
     return null
   }
 }
