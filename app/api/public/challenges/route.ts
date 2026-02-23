@@ -29,7 +29,14 @@ export async function GET(req: NextRequest) {
         status: c.status,
         jobInfo: c.jobInfo,
         promptSnippet: c.prompt.slice(0, 300),
-        constraints: publicConstraints(c.constraints),
+        constraints: {
+          ...publicConstraints(c.constraints),
+          // Kept for backward compatibility — agents that were built against the old API
+          // still read these fields. New agents should use GET /api/agent/sessions/:id
+          // and read `myTargets` (role-specific) instead of using both sides' targets.
+          employerTargets: c.constraints.employerTargets,
+          candidateTargets: c.constraints.candidateTargets,
+        },
         activatedAt: c.activatedAt,
         lockedAt: c.lockedAt,
       })),

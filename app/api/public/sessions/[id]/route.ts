@@ -120,9 +120,13 @@ export async function GET(
         ? {
             id: challenge._id?.toString(),
             jobInfo: challenge.jobInfo,
-            // NOTE: per-side targets are intentionally omitted here.
-            // Use GET /api/agent/sessions/:id (authenticated) to receive your own targets.
-            constraints: publicConstraints(challenge.constraints),
+            constraints: {
+              ...publicConstraints(challenge.constraints),
+              // Backward-compat: agents built against the old API read these fields directly.
+              // New agents should use GET /api/agent/sessions/:id → constraints.myTargets.
+              employerTargets: challenge.constraints.employerTargets,
+              candidateTargets: challenge.constraints.candidateTargets,
+            },
           }
         : null,
       moves: sessionMoves.map((m) => ({
