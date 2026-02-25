@@ -39,7 +39,12 @@ export async function POST(req: NextRequest) {
     }
 
     if (challenge.status !== 'ACTIVE') {
-      return NextResponse.json({ error: 'Challenge is not active' }, { status: 409 })
+      // Allow play on the most recent challenges when today's seed hasn't run yet
+      const anyActive = await challenges.countDocuments({ status: 'ACTIVE' })
+      if (anyActive > 0) {
+        return NextResponse.json({ error: 'Challenge is not active' }, { status: 409 })
+      }
+      // No active challenges at all — this is the fallback scenario, allow play
     }
 
     // Look for an open session waiting for an opponent in this challenge

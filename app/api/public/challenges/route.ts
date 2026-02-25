@@ -19,9 +19,20 @@ export async function GET(req: NextRequest) {
       filter.dayKey = today
     }
 
-    const docs = await challenges.find(filter).sort({ index: 1 }).toArray()
+    let docs = await challenges.find(filter).sort({ index: 1 }).toArray()
+
+    // Fallback: if no challenges exist for today (seed hasn't run yet), use the most recent day
+    let isFallback = false
+    if (docs.length === 0 && !dayKey) {
+      const mostRecent = await challenges.findOne({}, { sort: { dayKey: -1 } })
+      if (mostRecent) {
+        docs = await challenges.find({ dayKey: mostRecent.dayKey }).sort({ index: 1 }).toArray()
+        isFallback = true
+      }
+    }
 
     return NextResponse.json({
+      fallback: isFallback,
       challenges: docs.map((c) => ({
         id: c._id?.toString(),
         dayKey: c.dayKey,
