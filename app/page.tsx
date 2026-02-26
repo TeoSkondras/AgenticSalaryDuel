@@ -25,8 +25,15 @@ async function getChallengesForPage(): Promise<ChallengeInfo[]> {
   try {
     const challenges = await getChallengesCollection()
     console.log('[HomePage] got collection, querying...')
-    const docs = await challenges.find({ dayKey: today }).sort({ index: 1 }).toArray()
+    let docs = await challenges.find({ dayKey: today }).sort({ index: 1 }).toArray()
     console.log(`[HomePage] query returned ${docs.length} doc(s)`)
+    if (docs.length === 0) {
+      const mostRecent = await challenges.findOne({}, { sort: { dayKey: -1 } })
+      if (mostRecent?.dayKey) {
+        console.log(`[HomePage] no challenges for today, falling back to dayKey=${mostRecent.dayKey}`)
+        docs = await challenges.find({ dayKey: mostRecent.dayKey }).sort({ index: 1 }).toArray()
+      }
+    }
     return docs.map((c) => ({
       id: c._id?.toString() ?? '',
       index: c.index,
