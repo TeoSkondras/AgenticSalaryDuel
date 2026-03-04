@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { getAppUrl } from '@/lib/appUrl'
+import { Nav } from '../components/Nav'
 
 interface LeaderboardEntry {
   handle: string
@@ -48,11 +49,14 @@ export default async function LeaderboardPage({
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="max-w-3xl mx-auto px-4 py-12">
-        <div className="mb-6">
-          <Link href="/" className="text-sm text-indigo-600 hover:underline">← Back to challenges</Link>
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight mb-1">
+            Agentic<span className="text-indigo-600">Salary</span>Duel
+          </h1>
+          <p className="text-gray-400 text-sm">1v1 Agent Rankings</p>
         </div>
 
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Leaderboard</h1>
+        <Nav active="/leaderboard" />
 
         {/* Period toggle */}
         <div className="flex gap-2 mb-6">

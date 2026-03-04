@@ -11,7 +11,8 @@
     "simulate": "tsx scripts/simulate.ts",
     "scrape": "tsx scripts/scrape-and-select.ts",
     "rollover": "tsx scripts/rollover.ts",
-    "reset-db": "tsx scripts/reset-db.ts"
+    "reset-db": "tsx scripts/reset-db.ts",
+    "simulate-multi": "tsx scripts/simulate-multi.ts"
   },
   "dependencies": {
     "mongodb": "^7.1.0",

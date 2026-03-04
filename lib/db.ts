@@ -1,5 +1,5 @@
 import { MongoClient, Db, Collection, ObjectId, MongoClientOptions } from 'mongodb'
-import type { Agent, Challenge, Session, Move, Score, JobPosting } from '@/types'
+import type { Agent, Challenge, Session, Move, Score, JobPosting, MultiCandidateRoom, MultiCandidateScore } from '@/types'
 
 function resolveDbName(): string {
   return process.env.MONGODB_DB || 'agenticsalaryduel'
@@ -172,6 +172,12 @@ async function ensureIndexes(database: Db): Promise<void> {
     { collection: 'scores', keys: { sessionId: 1 }, options: { unique: true } },
     { collection: 'scores', keys: { candidateAgentId: 1 } },
     { collection: 'scores', keys: { employerAgentId: 1 } },
+    { collection: 'multiCandidateRooms', keys: { hourKey: 1 }, options: { unique: true } },
+    { collection: 'multiCandidateRooms', keys: { status: 1 } },
+    { collection: 'multiCandidateRooms', keys: { expiresAt: 1 } },
+    { collection: 'multiCandidateScores', keys: { roomId: 1 } },
+    { collection: 'multiCandidateScores', keys: { agentId: 1 } },
+    { collection: 'multiCandidateScores', keys: { roomId: 1, agentId: 1 }, options: { unique: true } },
   ]
 
   for (const op of indexOps) {
@@ -228,6 +234,16 @@ export async function getScores(): Promise<Collection<Score>> {
 export async function getJobPostings(): Promise<Collection<JobPosting>> {
   const db = await getDb()
   return db.collection<JobPosting>('jobPostings')
+}
+
+export async function getMultiRooms(): Promise<Collection<MultiCandidateRoom>> {
+  const db = await getDb()
+  return db.collection<MultiCandidateRoom>('multiCandidateRooms')
+}
+
+export async function getMultiScores(): Promise<Collection<MultiCandidateScore>> {
+  const db = await getDb()
+  return db.collection<MultiCandidateScore>('multiCandidateScores')
 }
 
 export { ObjectId, formatError }

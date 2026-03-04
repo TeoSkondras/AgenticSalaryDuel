@@ -1,0 +1,246 @@
+==================================================
+[2026-02-25 21:30:18] Starting daily 4am jobs
+[2026-02-25 21:30:18] Running: pnpm tsx scripts/seed.ts
+[dotenv@17.3.1] injecting env (8) from .env.local -- tip: ⚙️  suppress all logs with { quiet: true }
+Today (2026-02-26) already has 3 challenges. Use --force to replace them.
+[2026-02-25 21:30:20] Running: pnpm tsx agent-arena/run-ai.ts
+[dotenv@17.3.1] injecting env (8) from .env.local -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+
+╔══════════════════════════════════════════════════════════════════╗
+║  AgenticSalaryDuel — AI-Powered Arena                            ║
+║  VOLTAIRE  vs  MERIDIAN  •  Live OpenAI moves  •  All 3 Challenges║
+║  Model: gpt-5-nano • Real heartbeat loops • 30 s turn clock                         ║
+╚══════════════════════════════════════════════════════════════════╝
+
+  Platform : https://agenticsalaryduel-production.up.railway.app
+  Model    : gpt-5-nano
+
+  Fetching active challenges... 3 found
+    [0] Staff Engineer, Infrastructure @ Linear (staff)
+    [1] Senior Software Engineer, Streaming @ Netflix (senior)
+    [2] Senior Site Reliability Engineer @ Cloudflare (senior)
+
+  Registering agents...   [02:30:21] creds                    loaded existing account: voltaire_negot_mlzhe2pa
+  [02:30:21] creds                    loaded existing account: meridian_ai
+done
+    Voltaire → voltaire_negot_mlzhe2pa
+    Meridian → meridian_ai
+
+  Creating sessions... done
+    [0] voltaire_negot_mlzhe2pa (C) vs meridian_ai (E)
+        https://agenticsalaryduel-production.up.railway.app/session/699fb03db519a8f7b6e34457
+    [1] meridian_ai (C) vs voltaire_negot_mlzhe2pa (E)
+        https://agenticsalaryduel-production.up.railway.app/session/699fb03db519a8f7b6e34458
+    [2] voltaire_negot_mlzhe2pa (C) vs meridian_ai (E)
+        https://agenticsalaryduel-production.up.railway.app/session/699fb03db519a8f7b6e34459
+
+  ──────────────────────────────────────────────────────────────────
+  LIVE NEGOTIATION — 6 AI heartbeat loops running simultaneously
+  ──────────────────────────────────────────────────────────────────
+
+  [02:30:21] [C0:voltaire_neg]        R0 — calling gpt-5-nano... [0s]
+  [02:30:21] [C2:voltaire_neg]        R0 — calling gpt-5-nano... [0s]
+  [02:30:21] [C1:meridian_ai]         R0 — calling gpt-5-nano... [1s]
+  [02:30:34] [C1:meridian_ai]         → OFFER $280,000
+  [02:30:35] [C0:voltaire_neg]        → OFFER $350,000
+  [02:30:36] [C1:voltaire_neg]        R0 — calling gpt-5-nano... [2s]
+  [02:30:36] [C0:meridian_ai]         R0 — calling gpt-5-nano... [2s]
+  [02:30:37] [C2:voltaire_neg]        → OFFER $280,000
+  [02:30:39] [C2:meridian_ai]         R0 — calling gpt-5-nano... [3s]
+  [02:30:59] [C2:meridian_ai]         → OFFER $275,000
+  [02:31:01] [C2:voltaire_neg]        R1 — calling gpt-5-nano... [2s]
+  [02:31:07] [C0:meridian_ai]         → OFFER $255,000
+  [02:31:07] [C0:meridian_ai]         409 — not my turn, polling
+  [02:31:09] [C1:voltaire_neg]        → OFFER $240,000
+  [02:31:09] [C1:voltaire_neg]        409 — not my turn, polling
+  [02:31:10] [C0:meridian_ai]         R0 — calling gpt-5-nano... [0s]
+  [02:31:12] [C1:voltaire_neg]        R0 — calling gpt-5-nano... [0s]
+  [02:31:17] [C2:voltaire_neg]        → OFFER $280,000
+  [02:31:18] [C2:meridian_ai]         R1 — calling gpt-5-nano... [1s]
+  [02:31:26] [C0:voltaire_neg]        FINALIZED — score 86.8
+  [02:31:29] [C1:meridian_ai]         FINALIZED — score 89.3
+  [02:31:30] [C0:meridian_ai]         → COUNTER $320,000
+  [02:31:30] [C0:meridian_ai]         409 — not my turn, polling
+  [02:31:31] [C1:voltaire_neg]        → OFFER $200,000
+  [02:31:31] [C1:voltaire_neg]        409 — not my turn, polling
+  [02:31:33] [C0:meridian_ai]         FINALIZED — score 17.2
+  [02:31:34] [C1:voltaire_neg]        FINALIZED — score 21.6
+  [02:31:41] [C2:voltaire_neg]        poll error: fetch failed — retrying
+  [02:31:41] [C2:meridian_ai]         → OFFER $260,000
+  [02:31:44] [C2:voltaire_neg]        R2 — calling gpt-5-nano... [3s]
+  [02:32:05] [C2:voltaire_neg]        → COUNTER $270,000
+  [02:32:06] [C2:meridian_ai]         R2 — calling gpt-5-nano... [1s]
+  [02:32:37] [C2:meridian_ai]         → COUNTER $265,000
+  [02:32:37] [C2:meridian_ai]         409 — not my turn, polling
+  [02:32:40] [C2:meridian_ai]         poll error: fetch failed — retrying
+  [02:32:44] [C2:meridian_ai]         R2 — calling gpt-5-nano... [0s]
+  [02:32:51] [C2:voltaire_neg]        poll error: fetch failed — retrying
+  [02:33:00] [C2:voltaire_neg]        FINALIZED — score 84.3
+  [02:33:06] [C2:meridian_ai]         → OFFER $235,000
+  [02:33:06] [C2:meridian_ai]         409 — not my turn, polling
+  [02:33:09] [C2:meridian_ai]         FINALIZED — score 42.7
+
+  ══════════════════════════════════════════════════════════════════
+  FINAL RESULTS
+  ══════════════════════════════════════════════════════════════════
+
+  Challenge 0: Staff Engineer, Infrastructure @ Linear
+  voltaire_negot_mlzhe2pa (CANDIDATE)  vs  meridian_ai (EMPLOYER)
+  Status: FINALIZED
+  Candidate:   86.8 combined  (quant 100.0, judge 67.0)
+  Employer:    17.2 combined  (quant 0.0, judge 43.0)
+  View: https://agenticsalaryduel-production.up.railway.app/session/699fb03db519a8f7b6e34457
+
+  Challenge 1: Senior Software Engineer, Streaming @ Netflix
+  meridian_ai (CANDIDATE)  vs  voltaire_negot_mlzhe2pa (EMPLOYER)
+  Status: FINALIZED
+  Candidate:   89.3 combined  (quant 100.0, judge 73.2)
+  Employer:    21.6 combined  (quant 0.0, judge 54.0)
+  View: https://agenticsalaryduel-production.up.railway.app/session/699fb03db519a8f7b6e34458
+
+  Challenge 2: Senior Site Reliability Engineer @ Cloudflare
+  voltaire_negot_mlzhe2pa (CANDIDATE)  vs  meridian_ai (EMPLOYER)
+  Status: FINALIZED
+  Candidate:   84.3 combined  (quant 84.3, judge 84.3)
+  Employer:    42.7 combined  (quant 15.8, judge 83.0)
+  View: https://agenticsalaryduel-production.up.railway.app/session/699fb03db519a8f7b6e34459
+
+  ══════════════════════════════════════════════════════════════════
+
+[2026-02-25 21:33:09] Running: pnpm tsx scripts/simulate.ts
+[dotenv@17.3.1] injecting env (8) from .env.local -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+
+╔══════════════════════════════════════════════════════════════╗
+║          AgenticSalaryDuel — Demo Simulation                 ║
+╚══════════════════════════════════════════════════════════════╝
+  Platform: https://agenticsalaryduel-production.up.railway.app
+  Active challenges today: 3
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SCENARIO 1 of 3 — "The High-Stakes Gambit"
+  Competing offer, called bluff, late deal — a classic negotiation arc.
+  Staff Engineer, Infrastructure @ Linear (staff)
+  apex_negotiator  vs  talent_hawk
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Salary range (public): $255,000 – $350,000 | Max rounds: 10
+  Candidate target: $350,000 (private)  |  Employer target: $255,000 (private)
+
+  [R 0] CANDIDATE  OFFER       $332,500
+  [R 0] EMPLOYER   OFFER       $280,500
+  [R 1] CANDIDATE  COUNTER     $329,164
+  [R 1] EMPLOYER   COUNTER     $283,643
+  [R 2] CANDIDATE  ⚡ BLUFF     $325,829
+  [R 2] EMPLOYER   COUNTER     $286,786
+  [R 3] CANDIDATE  COUNTER     $322,493
+  [R 3] EMPLOYER   ⚡ CALL_BLUFF $289,929
+  [R 4] CANDIDATE  COUNTER     $319,157
+  [R 4] EMPLOYER   COUNTER     $293,071
+  [R 5] CANDIDATE  💬 MESSAGE  $304,446
+  [R 5] EMPLOYER   💬 MESSAGE  $300,330
+  [R 6] CANDIDATE  COUNTER     $312,486
+  [R 6] EMPLOYER   COUNTER     $299,357
+         ⚠  Only 3 rounds left. No-deal penalty is −40. A midpoint agreement scores ~+54. Consider accepting.
+  [R 7] CANDIDATE  COUNTER     $309,150
+         ⚠  Only 3 rounds left. No-deal penalty is −40. A midpoint agreement scores ~+54. Consider accepting.
+  [R 7] EMPLOYER   COUNTER     $302,500
+         ⚠  Only 2 rounds left. No-deal penalty is −40. A midpoint agreement scores ~+54. Consider accepting.
+  [R 8] CANDIDATE  ✓ ACCEPT    accepts $302,500
+
+  Agreement: $302,500 base | $75,000 bonus | $750,000 equity | 25d PTO
+  Candidate:  62.8 (quant: 50.0, judge: 82.0)
+  Employer:   63.6 (quant: 50.0, judge: 84.0)
+  View: https://agenticsalaryduel-production.up.railway.app/session/699fb0e6b519a8f7b6e34466
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SCENARIO 2 of 3 — "The Analytical Approach"
+  Market data, methodical concessions, and a well-timed split proposal.
+  Senior Software Engineer, Streaming @ Netflix (senior)
+  quant_candidate  vs  methodical_hr
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Salary range (public): $200,000 – $280,000 | Max rounds: 10
+  Candidate target: $280,000 (private)  |  Employer target: $200,000 (private)
+
+  [R 0] CANDIDATE  OFFER       $266,000
+  [R 0] EMPLOYER   OFFER       $220,000
+  [R 1] CANDIDATE  COUNTER     $263,086
+  [R 1] EMPLOYER   COUNTER     $222,857
+  [R 2] CANDIDATE  COUNTER     $260,171
+  [R 2] EMPLOYER   COUNTER     $225,714
+  [R 3] CANDIDATE  COUNTER     $257,257
+  [R 3] EMPLOYER   COUNTER     $228,571
+  [R 4] CANDIDATE  COUNTER     $254,343
+  [R 4] EMPLOYER   COUNTER     $231,429
+  [R 5] CANDIDATE  💬 MESSAGE  $241,429
+  [R 5] EMPLOYER   💬 MESSAGE  $237,858
+  [R 6] CANDIDATE  COUNTER     $248,514
+  [R 6] EMPLOYER   COUNTER     $237,143
+         ⚠  Only 3 rounds left. No-deal penalty is −40. A midpoint agreement scores ~+54. Consider accepting.
+  [R 7] CANDIDATE  COUNTER     $245,600
+         ⚠  Only 3 rounds left. No-deal penalty is −40. A midpoint agreement scores ~+54. Consider accepting.
+  [R 7] EMPLOYER   COUNTER     $240,000
+         ⚠  Only 2 rounds left. No-deal penalty is −40. A midpoint agreement scores ~+54. Consider accepting.
+  [R 8] CANDIDATE  ✓ ACCEPT    accepts $240,000
+
+  Agreement: $240,000 base | $50,000 bonus | $450,000 equity | 25d PTO
+  Candidate:  64.0 (quant: 50.0, judge: 85.0)
+  Employer:   62.4 (quant: 50.0, judge: 81.0)
+  View: https://agenticsalaryduel-production.up.railway.app/session/699fb10bb519a8f7b6e3447a
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SCENARIO 3 of 3 — "The Experience Premium"
+  A seasoned engineer meets a pragmatic CTO — directness over theatrics.
+  Senior Site Reliability Engineer @ Cloudflare (senior)
+  seasoned_veteran  vs  pragmatic_cto
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Salary range (public): $200,000 – $280,000 | Max rounds: 10
+  Candidate target: $280,000 (private)  |  Employer target: $200,000 (private)
+
+  [R 0] CANDIDATE  OFFER       $266,000
+  [R 0] EMPLOYER   OFFER       $220,000
+  [R 1] CANDIDATE  COUNTER     $263,086
+  [R 1] EMPLOYER   COUNTER     $222,857
+  [R 2] CANDIDATE  ⚡ BLUFF     $260,171
+  [R 2] EMPLOYER   COUNTER     $225,714
+  [R 3] CANDIDATE  COUNTER     $257,257
+  [R 3] EMPLOYER   ⚡ CALL_BLUFF $228,571
+  [R 4] CANDIDATE  COUNTER     $254,343
+  [R 4] EMPLOYER   COUNTER     $231,429
+  [R 5] CANDIDATE  💬 MESSAGE  $241,429
+  [R 5] EMPLOYER   💬 MESSAGE  $237,858
+  [R 6] CANDIDATE  COUNTER     $248,514
+  [R 6] EMPLOYER   COUNTER     $237,143
+         ⚠  Only 3 rounds left. No-deal penalty is −40. A midpoint agreement scores ~+54. Consider accepting.
+  [R 7] CANDIDATE  COUNTER     $245,600
+         ⚠  Only 3 rounds left. No-deal penalty is −40. A midpoint agreement scores ~+54. Consider accepting.
+  [R 7] EMPLOYER   COUNTER     $240,000
+         ⚠  Only 2 rounds left. No-deal penalty is −40. A midpoint agreement scores ~+54. Consider accepting.
+  [R 8] CANDIDATE  ✓ ACCEPT    accepts $240,000
+
+  Agreement: $240,000 base | $50,000 bonus | $450,000 equity | 25d PTO
+  Candidate:  62.8 (quant: 50.0, judge: 82.0)
+  Employer:   64.0 (quant: 50.0, judge: 85.0)
+  View: https://agenticsalaryduel-production.up.railway.app/session/699fb132b519a8f7b6e3448e
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  "The High-Stakes Gambit"
+    Staff Engineer, Infrastructure @ Linear
+    apex_negotiator_mm2umgjj  vs  talent_hawk_mm2umgjk
+    $302,500 deal  |  C: 62.8 / E: 63.6
+    https://agenticsalaryduel-production.up.railway.app/session/699fb0e6b519a8f7b6e34466
+
+  "The Analytical Approach"
+    Senior Software Engineer, Streaming @ Netflix
+    quant_candidate_mm2un95k  vs  methodical_hr_mm2un95k
+    $240,000 deal  |  C: 64.0 / E: 62.4
+    https://agenticsalaryduel-production.up.railway.app/session/699fb10bb519a8f7b6e3447a
+
+  "The Experience Premium"
+    Senior Site Reliability Engineer @ Cloudflare
+    seasoned_veteran_mm2uo31x  vs  pragmatic_cto_mm2uo31y
+    $240,000 deal  |  C: 62.8 / E: 64.0
+    https://agenticsalaryduel-production.up.railway.app/session/699fb132b519a8f7b6e3448e
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[2026-02-25 21:35:18] Daily 4am jobs completed successfully

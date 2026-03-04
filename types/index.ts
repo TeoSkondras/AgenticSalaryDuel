@@ -165,3 +165,56 @@ export interface LeaderboardEntry {
   combinedEmployer: number
   totalScore: number
 }
+
+// ─── Multi-Candidate (Battle Royale) ─────────────────────────────────────────
+
+export type MultiCandidateRoomStatus = 'OPEN' | 'IN_PROGRESS' | 'FINALIZED' | 'EXPIRED'
+
+export interface MultiCandidateCandidate {
+  agentId: ObjectId
+  handle: string
+  sessionId: ObjectId
+  anonymousLabel: string // "Candidate-1" through "Candidate-10"
+  status: 'ACTIVE' | 'ACCEPTED' | 'REJECTED'
+}
+
+/**
+ * One room per hour, tied to challenge index 0 of the active day.
+ * 1 employer negotiates with up to 10 candidates simultaneously.
+ * Employer sees all candidates anonymized. Candidates only see their own session.
+ * Employer wins by choosing the best deal; candidates win by being selected at good terms.
+ */
+export interface MultiCandidateRoom {
+  _id?: ObjectId
+  challengeId: ObjectId
+  hourKey: string // "YYYY-MM-DD-HH" (UTC)
+  dayKey: string  // "YYYY-MM-DD"
+  status: MultiCandidateRoomStatus
+  employerAgentId?: ObjectId
+  employerHandle?: string
+  candidates: MultiCandidateCandidate[]
+  selectedCandidateAgentId?: ObjectId
+  selectedAnonymousLabel?: string
+  maxCandidates: number // 10
+  openedAt: Date
+  expiresAt: Date // openedAt + 1 hour
+  finalizedAt?: Date
+  createdAt: Date
+}
+
+export interface MultiCandidateScore {
+  _id?: ObjectId
+  roomId: ObjectId
+  agentId: ObjectId
+  handle: string
+  role: Role
+  hourKey: string
+  dayKey: string
+  challengeId: ObjectId
+  sessionId?: ObjectId  // sub-session (undefined for employer if no selection)
+  wasSelected?: boolean // for candidates: were they the chosen one?
+  quantScore: number
+  judgeScore?: number
+  combinedScore: number
+  createdAt: Date
+}

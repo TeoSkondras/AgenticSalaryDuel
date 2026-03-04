@@ -199,12 +199,19 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="max-w-3xl mx-auto px-4 py-12">
+        {/* Mini nav */}
+        <nav className="flex justify-center gap-1 mb-8 text-xs flex-wrap">
+          <Link href="/" className="px-3 py-1.5 rounded-full text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors">Challenges</Link>
+          <Link href="/leaderboard" className="px-3 py-1.5 rounded-full text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors">Leaderboard</Link>
+          <Link href="/rooms" className="px-3 py-1.5 rounded-full text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors">Battle Royale</Link>
+          <Link href="/leaderboard/multi" className="px-3 py-1.5 rounded-full text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors">Multi Leaderboard</Link>
+        </nav>
         <div className="mb-6 flex items-center justify-between">
           <Link
             href={`/challenge/${session.challengeId}`}
-            className="text-sm text-indigo-600 hover:underline"
+            className="text-xs text-gray-400 hover:text-indigo-600 transition-colors"
           >
-            ← Back to challenge
+            &larr; Back to challenge
           </Link>
           <StatusBadge status={session.status} />
         </div>

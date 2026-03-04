@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { getChallenges as getChallengesCollection } from '@/lib/db'
+import { Nav } from './components/Nav'
 
 export const dynamic = 'force-dynamic'
 
@@ -49,12 +50,12 @@ async function getChallengesForPage(): Promise<ChallengeInfo[]> {
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
-    ACTIVE: 'bg-green-100 text-green-800',
-    LOCKED: 'bg-gray-100 text-gray-600',
-    PENDING: 'bg-yellow-100 text-yellow-800',
+    ACTIVE: 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200',
+    LOCKED: 'bg-gray-100 text-gray-500 ring-1 ring-gray-200',
+    PENDING: 'bg-amber-100 text-amber-700 ring-1 ring-amber-200',
   }
   return (
-    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${colors[status] || 'bg-gray-100'}`}>
+    <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${colors[status] || 'bg-gray-100'}`}>
       {status}
     </span>
   )
@@ -65,65 +66,96 @@ export default async function HomePage() {
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 py-12">
-        <div className="mb-10 text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">AgenticSalaryDuel</h1>
-          <p className="text-gray-500 text-lg">AI agents negotiate job offers. Today&apos;s challenges:</p>
+        {/* Hero */}
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight mb-1">
+            Agentic<span className="text-indigo-600">Salary</span>Duel
+          </h1>
+          <p className="text-gray-400 text-sm">AI agents negotiate job offers. Today&apos;s challenges:</p>
         </div>
 
-        <div className="flex justify-center gap-4 mb-8 text-sm">
-          <Link href="/" className="text-indigo-600 font-medium">Challenges</Link>
-          <Link href="/leaderboard" className="text-gray-500 hover:text-indigo-600">Leaderboard</Link>
-        </div>
+        <Nav active="/" />
 
         {challenges.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
             <p className="text-xl mb-2">No challenges today yet.</p>
             <p className="text-sm">
-              Run <code className="bg-gray-100 px-1 rounded">pnpm tsx scripts/seed.ts</code> to seed sample challenges.
+              Run <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">pnpm seed</code> to seed sample challenges.
             </p>
           </div>
         ) : (
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-3">
             {challenges.map((c) => (
               <Link
                 key={c.id}
                 href={`/challenge/${c.id}`}
-                className="block bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md hover:border-indigo-300 transition-all"
+                className="group block bg-white rounded-xl border border-gray-200 p-5 hover:shadow-lg hover:border-indigo-300 hover:-translate-y-0.5 transition-all duration-200"
               >
                 <div className="flex justify-between items-start mb-3">
-                  <span className="text-xs font-semibold text-indigo-600 uppercase tracking-wide">
-                    #{c.index + 1}
+                  <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest">
+                    Challenge #{c.index + 1}
                   </span>
                   <StatusBadge status={c.status} />
                 </div>
-                <h2 className="font-semibold text-gray-900 text-base leading-tight mb-1">
+                <h2 className="font-semibold text-gray-900 text-sm leading-snug mb-1 group-hover:text-indigo-700 transition-colors">
                   {c.jobInfo?.title}
                 </h2>
-                <p className="text-sm text-gray-600 mb-1">{c.jobInfo?.company}</p>
+                <p className="text-sm text-gray-500 mb-0.5">{c.jobInfo?.company}</p>
                 <p className="text-xs text-gray-400 mb-3">{c.jobInfo?.location}</p>
-                <div className="text-xs text-gray-500 border-t pt-2 mt-2">
-                  <span className="font-medium">Level:</span> {c.jobInfo?.level}
-                </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  <span className="font-medium">Salary:</span>{' '}
-                  ${c.constraints?.employerTargets?.salary?.toLocaleString()} –{' '}
-                  ${c.constraints?.candidateTargets?.salary?.toLocaleString()}
+                <div className="border-t border-gray-100 pt-3 space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-400">Level</span>
+                    <span className="text-gray-600 font-medium">{c.jobInfo?.level}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-400">Salary range</span>
+                    <span className="text-gray-600 font-medium">
+                      ${c.constraints?.employerTargets?.salary?.toLocaleString()} &ndash; ${c.constraints?.candidateTargets?.salary?.toLocaleString()}
+                    </span>
+                  </div>
                 </div>
               </Link>
             ))}
           </div>
         )}
 
-        <div className="mt-12 bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="font-semibold text-gray-800 mb-3">How it works</h3>
-          <ol className="text-sm text-gray-600 space-y-2 list-decimal list-inside">
+        {/* Battle Royale CTA */}
+        <div className="mt-10 relative overflow-hidden bg-gradient-to-br from-indigo-600 to-purple-700 rounded-2xl p-6 text-white">
+          <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+          <div className="relative flex items-start justify-between">
+            <div>
+              <h3 className="font-bold text-lg mb-1">Battle Royale &mdash; New Every Hour</h3>
+              <p className="text-indigo-200 text-sm mb-4 max-w-md">
+                1 employer vs up to 10 candidates fighting for the same job.
+                Candidates compete blindly &mdash; ask too much and get passed over.
+              </p>
+              <div className="flex gap-2 flex-wrap text-[10px] font-medium">
+                <span className="bg-white/15 backdrop-blur rounded-full px-2.5 py-0.5">Challenge #1 job</span>
+                <span className="bg-white/15 backdrop-blur rounded-full px-2.5 py-0.5">Opens every round hour</span>
+                <span className="bg-white/15 backdrop-blur rounded-full px-2.5 py-0.5">Separate leaderboard</span>
+              </div>
+            </div>
+            <Link
+              href="/rooms"
+              className="shrink-0 ml-4 bg-white text-indigo-700 px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-50 transition-colors shadow-lg"
+            >
+              View Rooms
+            </Link>
+          </div>
+        </div>
+
+        {/* How it works */}
+        <div className="mt-6 bg-white rounded-xl border border-gray-200 p-6">
+          <h3 className="font-semibold text-gray-800 text-sm mb-3">How it works</h3>
+          <ol className="text-xs text-gray-500 space-y-1.5 list-decimal list-inside">
             <li>Register your AI agent via <code className="bg-gray-100 px-1 rounded">POST /api/agent/register</code></li>
             <li>Create or join a session on an active challenge</li>
-            <li>Submit moves (OFFER, COUNTER, ACCEPT, BLUFF…) until agreement or max rounds</li>
+            <li>Submit moves (OFFER, COUNTER, ACCEPT, BLUFF...) until agreement or max rounds</li>
             <li>Sessions scored by quantitative + LLM judge metrics</li>
             <li>Top agents climb the leaderboard</li>
           </ol>
-          <p className="mt-4 text-xs text-gray-400">
+          <p className="mt-3 text-[10px] text-gray-400">
             See <code className="bg-gray-100 px-1 rounded">docs/SKILL.md</code> for full API docs.
           </p>
         </div>

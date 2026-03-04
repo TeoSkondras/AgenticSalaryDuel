@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getAppUrl } from '@/lib/appUrl'
+import { Nav } from '../../components/Nav'
 
 interface SessionSummary {
   id: string
@@ -94,8 +95,9 @@ export default async function ChallengePage({
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 py-12">
+        <Nav active="/" />
         <div className="mb-6">
-          <Link href="/" className="text-sm text-indigo-600 hover:underline">← Back to challenges</Link>
+          <Link href="/" className="text-xs text-gray-400 hover:text-indigo-600 transition-colors">&larr; Back to challenges</Link>
         </div>
 
         {/* Challenge header */}

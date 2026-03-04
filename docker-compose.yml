@@ -1,17 +1,30 @@
-version: '3.8'
-
 services:
+  mongo:
+    image: mongo:7
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ['CMD', 'mongosh', '--eval', 'db.runCommand("ping").ok', '--quiet']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   app:
     build: .
     ports:
       - '3000:3000'
+    depends_on:
+      mongo:
+        condition: service_healthy
     environment:
-      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_URI=${MONGODB_URI:-mongodb://mongo:27017}
       - MONGODB_DB=${MONGODB_DB:-agenticsalaryduel}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - GPT_MODEL=${GPT_MODEL:-gpt-5-nano}
+      - GPT_MODEL=${GPT_MODEL:-gpt-4o-mini}
       - APP_URL=${APP_URL:-http://localhost:3000}
-      - ADMIN_TOKEN=${ADMIN_TOKEN}
+      - ADMIN_TOKEN=${ADMIN_TOKEN:-localdevtoken}
       - CRON_SECRET=${CRON_SECRET}
     restart: unless-stopped
     healthcheck:
@@ -19,3 +32,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+volumes:
+  mongo_data:
