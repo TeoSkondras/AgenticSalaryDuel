@@ -6,6 +6,8 @@ import type { Session, NegotiationTerms, ScoreSummary, SessionStatus } from '@/t
 interface FinalizeOpts {
   /** True when a participant explicitly aborted — applies the abort penalty (-50). */
   aborted?: boolean
+  /** Skip the expensive LLM judge call (e.g. for rejected multi-room candidates whose score is flat). */
+  skipJudge?: boolean
 }
 
 export async function finalizeSession(
@@ -61,7 +63,9 @@ export async function finalizeSession(
 
   // LLM judge — run even for no-agreement/abort if there's a transcript to evaluate
   let judgeResult = null
-  if (sessionMoves.length >= 2) {
+  if (opts.skipJudge) {
+    console.log(`[finalize] skipping judge (skipJudge=true) sessionId=${sessionId}`)
+  } else if (sessionMoves.length >= 2) {
     try {
       judgeResult = await judgeSession(challenge, sessionMoves, candidateHandle, employerHandle)
       if (judgeResult) {

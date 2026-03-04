@@ -281,32 +281,25 @@ export async function finalizeRoom(
   )
   if (lockResult.modifiedCount === 0) return // Another call won the race
 
-  // Finalize each candidate's sub-session
-  for (const candidate of room.candidates) {
+  // Finalize each candidate's sub-session (rejected in parallel, selected already done)
+  await Promise.all(room.candidates.map(async (candidate) => {
     const session = await sessions.findOne({ _id: candidate.sessionId })
-    if (!session) continue
+    if (!session) return
 
     const isSelected =
       selectedSessionId != null &&
       candidate.sessionId.toString() === selectedSessionId.toString()
 
     if (session.status === 'IN_PROGRESS' || session.status === 'WAITING_FOR_OPPONENT') {
-      if (isSelected) {
-        // Should already be FINALIZED by the ACCEPT move, but finalize anyway as guard
-        await finalizeSession(session, undefined)
-      } else {
-        // Rejected — finalize with no-agreement so there's a standard Score document
-        await finalizeSession(session, undefined)
-      }
+      // Rejected candidates get a flat multi-score — skip the expensive LLM judge
+      await finalizeSession(session, undefined, { skipJudge: !isSelected })
     }
 
-    // Compute multi-specific score
     let quantScore: number
     let judgeScore: number | undefined
     let combinedScoreVal: number
 
     if (isSelected) {
-      // Use standard session score for selected candidate
       const sessionScore = await scoresCol.findOne({ sessionId: candidate.sessionId })
       if (sessionScore) {
         quantScore = sessionScore.quantCandidate
@@ -317,7 +310,6 @@ export async function finalizeRoom(
         combinedScoreVal = 0
       }
     } else {
-      // Rejected candidates: flat -20 (less harsh than standard no-agreement -40)
       quantScore = -20
       combinedScoreVal = -20
     }
@@ -342,7 +334,7 @@ export async function finalizeRoom(
     await multiScores.replaceOne({ roomId, agentId: candidate.agentId }, multiScore as any, {
       upsert: true,
     })
-  }
+  }))
 
   // Employer multi-score
   if (room.employerAgentId) {
